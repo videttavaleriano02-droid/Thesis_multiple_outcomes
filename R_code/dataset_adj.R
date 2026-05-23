@@ -16,3 +16,4 @@ raw_data <- raw_data[-raw_data$record_id<68] # capire fino a che id eliminare
 
 
 # creating outcome variables:
+
