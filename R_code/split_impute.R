@@ -9,16 +9,6 @@ setwd('/Users/valerianovidetta/Desktop/Tesi/Dataset/')
 library(tidyverse)
 library(caret)
 
-# -------------
-
-# functions:
-
-split_random <- function(df, p = 0.70, seed = 1) {
-  set.seed(seed)
-  idx <- createDataPartition(as.factor(df$sesso_E1), p = p, list = FALSE)
-  list(train = df[idx, ], test = df[-idx, ])
-}
-
 
 # --------------------------------------------------------------------------------------------------
 
@@ -29,6 +19,14 @@ original <- readxl::read_xlsx('strategy_firenze.xlsx')
                                     # ------------------ #
                                     # HOLD-OUT SPLITTING #
                                     # ------------------ #
+
+
+split_random <- function(df, p = 0.70, seed = 1) {
+  set.seed(seed)
+  idx <- createDataPartition(df$mbi_totale_E1, p = p, list = FALSE)
+  list(train = df[idx, ], test = df[-idx, ])
+}
+
 
 split <- split_random(original, p = .8, seed = 272727)
 
