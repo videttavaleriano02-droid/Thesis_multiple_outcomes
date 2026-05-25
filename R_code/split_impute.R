@@ -20,13 +20,15 @@ original <- readxl::read_xlsx('strategy_firenze.xlsx')
                                     # HOLD-OUT SPLITTING #
                                     # ------------------ #
 
-
 split_random <- function(df, p = 0.70, seed = 1) {
   set.seed(seed)
-  idx <- createDataPartition(df$mbi_totale_E1, p = p, list = FALSE)
-  list(train = df[idx, ], test = df[-idx, ])
+  n <- nrow(df)
+  idx <- sample(seq_len(n), size = floor(p * n))
+  list(
+    train = df[idx, ],
+    test  = df[-idx, ]
+  )
 }
-
 
 split <- split_random(original, p = .8, seed = 272727)
 
