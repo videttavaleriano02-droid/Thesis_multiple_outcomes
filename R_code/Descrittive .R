@@ -142,7 +142,7 @@ abline(h = 15, col = "red", lwd = 1, lty = 2)
 
 
 outcomes <- c('totale_mbi_E1','totale_mbi_E2','totale_mbi_fu_E4','totale_mbi_fu_E5',
-              'fac_E1','fac_E2', 'fac_fu_E4','fac_fu_E5',
+              'fac_E1', 'fac_E2', 'fac_fu_E4','fac_fu_E5',
                'totale_tct_E1', 'totale_tct_E2', 
                'mmse_strategy_corretto_E1','mmse_strategy_corretto_E2'
 )
