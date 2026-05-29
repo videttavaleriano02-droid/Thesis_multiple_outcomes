@@ -116,8 +116,8 @@ dir.create('folds_synthetic', showWarnings = F)
 
 for ( i in seq_along(folds_spl)) {
 
-  train_imp <- read_csv(paste0("folds_imputed/train_fold", i, ".csv"))[,-c(1,2)] 
-  
+  train_imp <- read_csv(paste0("folds_imputed/train_fold", i, ".csv"))[,-1] 
+
   n_real <- nrow(train_imp)
   n_synth <- 2000 - n_real
   
@@ -133,12 +133,10 @@ for ( i in seq_along(folds_spl)) {
 }
 
 
-
-
 ## synthetize also development
 dir.create("development_synthetic", showWarnings = F)
 
-dev_imp <- read_csv("hold_out_imputed/development.csv")
+dev_imp <- read_csv("hold_out_imputed/development.csv")[,-1]
 
 n_real <- nrow(dev_imp)
 n_synth <- 2000 - n_real
