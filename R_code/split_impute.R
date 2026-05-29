@@ -146,8 +146,7 @@ synth <- syn(dev_imp, k= n_synth, seed=2026)
 dev_augmented <- rbind(dev_imp, synth$syn)
 write.csv(dev_augmented, "development_synthetic/development_syn.csv", row.names = F)
 
-cat("Development:", n_real, "| synthetic:", n_synth, 
-    "| totale:", nrow(dev_augmented), "\n")
+cat("Development:", n_real, "| synthetic:", n_synth, "| totale:", nrow(dev_augmented), "\n")
 
 
 
