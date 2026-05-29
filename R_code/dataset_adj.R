@@ -1,8 +1,10 @@
                                       # ------------------ #
                                       #   Adjusting Data   #
                                       # ------------------ #
+setwd('/Users/valerianovidetta/Desktop/Tesi/Dataset/') 
 
 library(dplyr)
+library(synthpop)
 
 #' impute values of mbi,fac, ... at dimission
 #' capire perchè ho meno variabili
@@ -14,8 +16,7 @@ library(dplyr)
 
 raw_data <- readxl::read_xlsx('strategy_valeriano_wide_solo_event.xlsx')
 
-# raw_data <- raw_data[raw_data$record_id >= 68, ] da capire ancora quali
-
+raw_data <- raw_data[raw_data$record_id >= 68, ] # per ora rimaniamo fino al 68
 
 
 # ------
@@ -95,6 +96,10 @@ raw_data <- raw_data %>%
                                     dimissione_presso_t1_dimissione_56_arm_1)
     
   )
+
+
+# codebook summary of the variables
+codebook.syn(raw_data)$tab 
 
 
 # -----
