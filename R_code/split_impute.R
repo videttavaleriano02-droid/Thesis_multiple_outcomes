@@ -139,7 +139,7 @@ dir.create("development_synthetic", showWarnings = F)
 dev_imp <- read_csv("hold_out_imputed/development.csv")[,-1]
 
 n_real <- nrow(dev_imp)
-n_synth <- 2000 - n_real
+n_synth <- 10000 - n_real
 
 synth <- syn(dev_imp, k= n_synth, seed=2026)
 
