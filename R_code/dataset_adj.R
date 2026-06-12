@@ -162,7 +162,7 @@ vars_da_rimuovere <- names(perc_missing[perc_missing >= 50])
 
 clean_data <- clean_data[, !(names(clean_data) %in% vars_da_rimuovere)]
 
-ncol(strategy)
+ncol(raw_data)
 ncol(clean_data)
 
 
