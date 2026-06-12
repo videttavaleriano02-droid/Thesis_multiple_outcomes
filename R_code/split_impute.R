@@ -17,14 +17,16 @@ set.seed(2026)
 
 # import dataset
 
-original <- read_csv('clean_dataset.csv')[,-1]
+original <- read_csv('clean_dataset.csv')
+head(original)
+original <- original[,-c(1,2)]
 
                                     # ------------------ #
                                     # HOLD-OUT SPLITTING #
                                     # ------------------ #
 dir.create('hold_out', showWarnings = F)
 
-split_random <- function(df, p = 0.70, seed = 1) {
+split_random <- function(df, p = 0.80, seed = 1) {
   set.seed(seed)
   n <- nrow(df)
   idx <- sample(seq_len(n), size = floor(p * n))
@@ -39,8 +41,8 @@ split <- split_random(original, p = .8, seed = 2026)
 develop <- split$train
 test <- split$test
 
-write.csv(develop, "hold_out/development.csv")
-write.csv(test, "hold_out/test.csv")
+write.csv(develop, "hold_out/development.csv", row.names = F)
+write.csv(test, "hold_out/test.csv", row.names = F)
 
 
                                     # ------------------ #
@@ -116,7 +118,7 @@ dir.create('folds_synthetic', showWarnings = F)
 
 for ( i in seq_along(folds_spl)) {
 
-  train_imp <- read_csv(paste0("folds_imputed/train_fold", i, ".csv"))[,-1] 
+  train_imp <- read_csv(paste0("folds_imputed/train_fold", i, ".csv"))
 
   n_real <- nrow(train_imp)
   n_synth <- 2000 - n_real
@@ -136,7 +138,7 @@ for ( i in seq_along(folds_spl)) {
 ## synthetize also development
 dir.create("development_synthetic", showWarnings = F)
 
-dev_imp <- read_csv("hold_out_imputed/development.csv")[,-1]
+dev_imp <- read_csv("hold_out_imputed/development.csv")
 
 n_real <- nrow(dev_imp)
 n_synth <- 10000 - n_real
