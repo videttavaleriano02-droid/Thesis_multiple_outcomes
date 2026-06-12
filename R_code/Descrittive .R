@@ -1,5 +1,5 @@
 library(tableone)
-library(readxl)
+library(tidyverse)
 setwd('/Users/valerianovidetta/Desktop/Tesi/Dataset/')
 strategy <- read_csv('clean_dataset.csv')[,-1]
 
@@ -25,13 +25,7 @@ bp <- barplot(na_summary$na_perc,
 abline(h = 50, col = "red", lwd = 1, lty = 2)
 
 
-outcomes <- c('totale_mbi_t0_arm_1','mbi_t1','totale_mbi_fu_t2_arm_1','totale_mbi_fu_t3_arm_1',
-              'fac_t0_arm_1', 'fac_t1', 'fac_fu_t2_arm_1','fac_fu_t3_arm_1',
-               'totale_tct_t0_arm_1', 'tct_t1', 
-               'totale_mmse_t0_arm_1','mmse_t1',
-              "mrs_t0_arm_1", "mrs_t1", "mrs_fu_t2_arm_1", "mrs_fu_t3_arm_1",
-              "totale_sppb_t0_arm_1", "sppb_t1"
-)
+outcomes <- c('mbi_t1', 'tct_t1', "mrs_t1")
 
 summary_outcomes <- data.frame(
   N = sapply(strategy[,outcomes], function(x) sum(!is.na(x))),
