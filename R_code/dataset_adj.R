@@ -61,6 +61,19 @@ raw_data$lato_lesione_bilaterale_t0 <- ifelse(raw_data$lato_t0_arm_1 == 3, 1, 0)
 # ???
 
 
+# Dividere in due la variabile: sede lesione
+# 1 se tronco e cerello (sede da 7 a 10) <- lesione sotto tentoriale
+# 1 tutto il resto <- lesione sopra tentoriale
+raw_data$lesione_sopratentoriale <- ifelse(
+  rowSums(raw_data[, paste0("sede_lesione___", 1:6, "_t0_arm_1")], na.rm = TRUE) > 0,
+  1, 0
+)
+raw_data$lesione_sottotentoriale <- ifelse(
+  rowSums(raw_data[, paste0("sede_lesione___", 7:10, "_t0_arm_1")], na.rm = TRUE) > 0,
+  1, 0
+)
+
+
 # -----------
 
 # unire variabili codici diversi
@@ -113,7 +126,13 @@ var_to_omit <- c( 'scala_instabilit_clinica___1_t1_dimissione_ex_2_arm_1','scala
                   'fac_t1_dimissione_ex_2_arm_1', 'fac_t1_dimissione_56_arm_1',
                   'totale_sppb_t1_dimissione_ex_2_arm_1', 'totale_sppb_t1_dimissione_56_arm_1',
                   'totale_mmse_t1_dimissione_ex_2_arm_1', 'totale_mmse_t1_dimissione_56_arm_1',
-                  'lato_t0_arm_1', 'tipologia_ictus_ischemico_2_t0_arm_1'
+                  'lato_t0_arm_1', 'tipologia_ictus_ischemico_2_t0_arm_1',
+                  "totale_tct_t1_dimissione_ex_2_arm_1", "totale_tct_t1_dimissione_56_arm_1",
+                  "dimissione_presso_t1_dimissione_ex_2_arm_1", "dimissione_presso_t1_dimissione_56_arm_1",
+                  "sede_lesione___1_t0_arm_1", "sede_lesione___2_t0_arm_1", "sede_lesione___3_t0_arm_1",
+                  "sede_lesione___4_t0_arm_1", "sede_lesione___5_t0_arm_1", "sede_lesione___6_t0_arm_1",
+                  "sede_lesione___7_t0_arm_1", "sede_lesione___8_t0_arm_1", "sede_lesione___9_t0_arm_1",
+                  "sede_lesione___10_t0_arm_1"
 )
 
 
@@ -135,6 +154,16 @@ for (i in seq_along(id_imp)){
   clean_data$mbi_t1[clean_data$record_id == id_imp[i]] <- mbi_imp[i]
   
 }
+
+# ---- 
+# togliamo variabili con 50%+ di missing
+perc_missing <- colMeans(is.na(clean_data)) * 100
+vars_da_rimuovere <- names(perc_missing[perc_missing >= 50])
+
+clean_data <- clean_data[, !(names(clean_data) %in% vars_da_rimuovere)]
+
+ncol(strategy)
+ncol(clean_data)
 
 
 # DATASET PULITO
