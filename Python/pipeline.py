@@ -9,11 +9,32 @@ import os
 
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
+from sklearn.metrics import make_scorer
+
 from sklearn.preprocessing import StandardScaler
+
 from sklearn.compose import TransformedTargetRegressor
+from sklearn.multioutput import MultiOutputRegressor
+
+
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import MultiTaskElasticNet
+from catboost import CatBoostRegressor
+from sklearn.linear_model import ElasticNet
 
+
+
+
+# ============================== #
+#           Functions            #
+# ============================== #
+
+def normalized_rmse(y_true, y_pred):
+    stds = np.std(y_true, axis=0)
+    rmse_per_outcome = np.sqrt(np.mean((y_true - y_pred)**2, axis=0))
+    return np.mean(rmse_per_outcome / stds)
+
+custom_scorer = make_scorer(normalized_rmse, greater_is_better=False)
 
 
 # Set random seed for reproducibility
@@ -76,30 +97,37 @@ y_global = pd.concat(y_chunks, axis=0).reset_index(drop=True)
 #       GRIDS          #
 # ==================== #
 
-
 # ========== #
-# Multi-task #
+# MULTI-TASK #
 # ========== #
 
-catboost_grid = {
-    'iterations': [500, 1000, 1500],       # # trees
-    'learning_rate': [0.01, 0.05, 0.1],    
-    'depth': [4, 6, 8, 10],                
-    'l2_leaf_reg': [1, 3, 5, 10],          # Regularization L2
-    'loss_function': ['MultiRMSE']         # Clearly FIXED
-}
-
+# --- Random Forest MTL ---
+# Esempio: n_estimators=1000, max_depth=10 → 1000 alberi profondi max 10 livelli
+# su y shape (2000, 3) → ogni split minimizza MSE(mbi) + MSE(mrs) + MSE(tct) insieme
 rf_grid = {
-    'n_estimators': [100, 300, 500],
-    'max_depth': [None, 10, 20, 30],       # 'None' makes nodes expand untill pure leaves
-    'min_samples_split': [2, 5, 10],       # To regularize the tree
-    'min_samples_leaf': [1, 2, 4],
-    'max_features': ['sqrt', 'log2', 0.33] # 0.33 1/3 of features is ok
+    'n_estimators': [200, 500, 1000],
+    'max_depth': [5, 10, 15, 20],
+    'min_samples_split': [10, 20, 50],
+    'min_samples_leaf': [5, 10, 20],
+    'max_features': ['sqrt', 0.33, 0.5]
 }
 
+# --- CatBoost MTL ---
+# loss_function='MultiRMSE' → gradient calcolato congiuntamente su tutti e 3 gli outcome
+catboost_grid = {
+    'iterations': [300, 600, 1000],
+    'learning_rate': [0.01, 0.05, 0.1],
+    'depth': [3, 4, 6],
+    'l2_leaf_reg': [1, 3, 5, 10, 20],
+    'loss_function': ['MultiRMSE']
+}
+
+# --- ElasticNet MTL ---
+# MultiTaskElasticNet: penalità L2,1 condivisa → se alpha=0.1 azzera feature_età,
+# la azzera per TUTTI e 3 gli outcome contemporaneamente
 elasticnet_grid = {
-    'alpha': [0.001, 0.01, 0.1, 1.0, 10.0], # Total penalty (L1 + L2)
-    'l1_ratio': [0, 0.3, 0.5, 0.7, 0.9, 1] #0 = Ridge, 1 =  Lasso
+    'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0],
+    'l1_ratio': [0, 0.25, 0.5, 0.75, 1.0]
 }
 
 # rfsrc_grid <- list(
@@ -123,42 +151,39 @@ elasticnet_grid = {
 # }
 
 
-
 # =========== #
-# Single-task #
+# SINGLE-TASK #
 # =========== #
 
-
-catboost_stl_grid = {
-    'iterations': [500, 1000, 1500],
-    'learning_rate': [0.01, 0.05, 0.1],
-    'depth': [4, 6, 8, 10],
-    'l2_leaf_reg': [1, 3, 5, 10],
-    'loss_function': ['RMSE']            
-}
-
+# --- Random Forest STL ---
+# Esempio: n_estimators=1000, max_depth=10 → 3 foreste indipendenti (una per outcome)
+# rf_mbi splitta considerando solo MSE(mbi_t1), ignora mrs e tct
 rf_stl_grid = {
-    'n_estimators': [100, 300, 500],
-    'max_depth': [None, 10, 20, 30],
-    'min_samples_split': [2, 5, 10],
-    'min_samples_leaf': [1, 2, 4],
-    'max_features': ['sqrt', 'log2', 0.33]
+    'n_estimators': [200, 500, 1000],
+    'max_depth': [5, 10, 15, 20],
+    'min_samples_split': [10, 20, 50],
+    'min_samples_leaf': [5, 10, 20],
+    'max_features': ['sqrt', 0.33, 0.5]
 }
 
+# --- CatBoost STL ---
+# loss_function='RMSE' → gradient calcolato separatamente per ogni outcome
+# Esempio: cb_mrs ottimizza solo RMSE(mrs_t1), non sa nulla di mbi e tct
+catboost_stl_grid = {
+    'iterations': [300, 600, 1000],
+    'learning_rate': [0.01, 0.05, 0.1],
+    'depth': [3, 4, 6],
+    'l2_leaf_reg': [1, 3, 5, 10, 20],
+    'loss_function': ['RMSE']
+}
+
+# --- ElasticNet STL ---
+# ElasticNet univariato: penalità indipendente per ogni outcome
+# Esempio: alpha=0.1 può azzerare feature_età su mbi_t1 ma tenerla su mrs_t1
 elasticnet_stl_grid = {
-    'alpha': [0.001, 0.01, 0.1, 1.0, 10.0],
-    'l1_ratio': [0, 0.3, 0.5, 0.7, 0.9, 1]
+    'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0],
+    'l1_ratio': [0, 0.25, 0.5, 0.75, 1.0]
 }
-
-# nn_stl_grid = {
-#     'hidden_layers': [[64, 32], [128, 64], [256, 128, 64]], # Strati standard sequenziali
-#     'learning_rate': [1e-4, 1e-3, 5e-3],
-#     'dropout_rate': [0.1, 0.2, 0.3],
-#     'batch_size': [32, 64, 128],
-#     'epochs': [50, 100, 200]
-# }
-
-
 
 
 # ==================== #
@@ -185,4 +210,158 @@ MVRF = TransformedTargetRegressor(
     transformer=StandardScaler() # <--- Forza la standardizzazione di Y dentro il fold!
 )
 
+# -----------------
+# ELASTIC NET (MultiTask)
 
+MTEN = TransformedTargetRegressor(
+    regressor=MultiTaskElasticNet(max_iter=5000, random_state=seed),
+    transformer=StandardScaler()
+)
+
+# -----------------
+# CATBOOST (MultiTask)
+# CatBoostRegressor con loss_function='MultiRMSE' supporta multi-output nativo
+ 
+ 
+MVCatBoost = TransformedTargetRegressor(
+    regressor=CatBoostRegressor(
+        loss_function='MultiRMSE',
+        random_seed=seed,
+        verbose=0  # Silenzia il log di training
+    ),
+    transformer=StandardScaler()
+)
+
+
+# ==================== #
+# GRID SEARCH WRAPPERS #
+# (Multi-task)         #
+# ==================== #
+ 
+# Nota sui prefissi: i modelli sono wrappati in TransformedTargetRegressor.
+# GridSearchCV vede i parametri come: regressor__<param>
+# Esempio: RandomForestRegressor(n_estimators=...) → 'regressor__n_estimators'
+ 
+rf_mtl_param_grid = {f'regressor__{k}': v for k, v in rf_grid.items()}
+en_mtl_param_grid = {f'regressor__{k}': v for k, v in elasticnet_grid.items()}
+cb_mtl_param_grid = {f'regressor__{k}': v for k, v in catboost_grid.items()
+                     if k != 'loss_function'}  # loss_function è fixed, non va in grid
+ 
+GS_MVRF = GridSearchCV(
+    estimator=MVRF,
+    param_grid=rf_mtl_param_grid,
+    cv=custom_cv,
+    scoring=custom_scorer,
+    refit=True,
+    n_jobs=-1,
+    verbose=1
+)
+ 
+GS_MTEN = GridSearchCV(
+    estimator=MTEN,
+    param_grid=en_mtl_param_grid,
+    cv=custom_cv,
+    scoring=custom_scorer,
+    refit=True,
+    n_jobs=-1,
+    verbose=1
+)
+ 
+GS_MVCatBoost = GridSearchCV(
+    estimator=MVCatBoost,
+    param_grid=cb_mtl_param_grid,
+    cv=custom_cv,
+    scoring=custom_scorer,
+    refit=True,
+    n_jobs=-1,
+    verbose=1
+)
+
+
+# =========== #
+# SINGLE-TASK #
+# =========== #
+ 
+# Ogni modello STL è indipendente per outcome.
+# Esempio RF STL: 
+#   rf_mbi fitta su y['mbi_t1'] → split basati solo su mbi_t1
+#   rf_mrs fitta su y['mrs_t1'] → split basati solo su mrs_t1
+#   rf_tct fitta su y['tct_t1'] → split basati solo su tct_t1
+#
+# MultiOutputRegressor li wrappa insieme → possiamo passare y_global intero a GridSearchCV
+# e usare custom_scorer che aggrega i 3 NRMSE in un unico score.
+#
+# Stack dei wrapper per ogni modello STL:
+#   MultiOutputRegressor(          ← wrappa i 3 modelli, riceve y shape (n, 3)
+#       TransformedTargetRegressor(    ← standardizza Y fold-by-fold per ogni outcome
+#           regressor=<modello>
+#       )
+#   )
+# Prefisso parametri grid: estimator__regressor__<param>
+#   estimator__       → MultiOutputRegressor
+#   regressor__       → TransformedTargetRegressor
+#   <param>           → parametro del modello base
+ 
+# --- Random Forest STL ---
+STL_RF = MultiOutputRegressor(
+    TransformedTargetRegressor(
+        regressor=RandomForestRegressor(random_state=seed),
+        transformer=StandardScaler()
+    )
+)
+rf_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in rf_stl_grid.items()}
+ 
+# --- ElasticNet STL ---
+# ElasticNet univariato: nessuna penalità condivisa tra outcome
+STL_EN = MultiOutputRegressor(
+    TransformedTargetRegressor(
+        regressor=ElasticNet(max_iter=5000, random_state=seed),
+        transformer=StandardScaler()
+    )
+)
+en_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in elasticnet_stl_grid.items()}
+ 
+# --- CatBoost STL ---
+STL_CB = MultiOutputRegressor(
+    TransformedTargetRegressor(
+        regressor=CatBoostRegressor(
+            loss_function='RMSE',
+            random_seed=seed,
+            verbose=0
+        ),
+        transformer=StandardScaler()
+    )
+)
+cb_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in catboost_stl_grid.items()
+                     if k != 'loss_function'}
+ 
+GS_STL_RF = GridSearchCV(
+    estimator=STL_RF,
+    param_grid=rf_stl_param_grid,
+    cv=custom_cv,
+    scoring=custom_scorer,
+    refit=True,
+    n_jobs=-1,
+    verbose=1
+)
+ 
+GS_STL_EN = GridSearchCV(
+    estimator=STL_EN,
+    param_grid=en_stl_param_grid,
+    cv=custom_cv,
+    scoring=custom_scorer,
+    refit=True,
+    n_jobs=-1,
+    verbose=1
+)
+ 
+GS_STL_CB = GridSearchCV(
+    estimator=STL_CB,
+    param_grid=cb_stl_param_grid,
+    cv=custom_cv,
+    scoring=custom_scorer,
+    refit=True,
+    n_jobs=-1,
+    verbose=1
+)
+ 
