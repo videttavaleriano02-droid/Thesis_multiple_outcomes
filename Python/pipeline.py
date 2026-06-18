@@ -29,7 +29,7 @@ from sklearn.linear_model import ElasticNet
 #           Functions            #
 # ============================== #
 
-def normalized_rmse(y_true, y_pred):
+def normalized_rmse(y_true, y_pred): # chiedere a Chiara se è ok usare sd() test. 
     stds = np.std(y_true, axis=0)
     rmse_per_outcome = np.sqrt(np.mean((y_true - y_pred)**2, axis=0))
     return np.mean(rmse_per_outcome / stds)
@@ -334,7 +334,12 @@ STL_CB = MultiOutputRegressor(
 )
 cb_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in catboost_stl_grid.items()
                      if k != 'loss_function'}
- 
+
+# ==================== #
+# GRID SEARCH WRAPPERS #
+# (Single-task)         #
+# ==================== #
+
 GS_STL_RF = GridSearchCV(
     estimator=STL_RF,
     param_grid=rf_stl_param_grid,
