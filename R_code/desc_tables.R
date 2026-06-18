@@ -75,7 +75,7 @@ View(raw_clean_table)
 # --------
 # table 2: dev vs test
 
-dev_test_table <- make_tableone(dev_data, test_data, "dev", "test")
+dev_test_table <- make_tableone(dev_data, test_data, "dev", "test_set")
 View(dev_test_table)
 
 # --------
