@@ -2,6 +2,7 @@
 
 library(tidyverse)
 library(dplyr)
+library(tableone)
 
 setwd('/Users/valerianovidetta/Desktop/Tesi/Dataset')
 
@@ -32,93 +33,53 @@ syn_train <- rbind(syn_train1, syn_train2, syn_train3, syn_train4, syn_train5)
 
 # --------
 
+get_bin_vars <- function(df) {
+  names(df)[sapply(df, function(x) {
+    ux <- unique(na.omit(x))
+    all(ux %in% c(0,1))
+  })]
+}
 
-desc_stats <- function(data) {
+make_tableone <- function(df1, df2, label1, label2) {
   
-  num_data <- data %>% select(where(is.numeric))
+  df1 <- df1 %>% mutate(group = label1)
+  df2 <- df2 %>% mutate(group = label2)
   
-  if (ncol(num_data) == 0) {
-    stop("Nessuna variabile numerica nel dataset")
-  }
+  combined <- bind_rows(df1, df2)
   
-  out <- lapply(names(num_data), function(v) {
-    x <- num_data[[v]]
-    
-    data.frame(
-      variable = v,
-      mean = mean(x, na.rm = TRUE),
-      sd  = sd(x, na.rm = TRUE),
-      iqr  = IQR(x, na.rm = TRUE)
-    )
-  })
+  bin_vars <- get_bin_vars(combined)
   
-  bind_rows(out)
+  tab <- CreateTableOne(
+    vars = setdiff(names(combined), "group"),
+    strata = "group",
+    data = combined,
+    factorVars = bin_vars,
+    test = TRUE
+  )
+  
+  print(tab, test = TRUE)
 }
 
 raw_data <- raw_data %>%
   mutate(across(where(is.character),
                 ~ suppressWarnings(as.numeric(gsub(",", ".", .)))))
 
-
 # ---------
 # table 1: raw vs clean dataset
 
-raw_table  <- desc_stats(raw_data)
-clean_table <- desc_stats(clean_data)
-
-raw_clean_table <- raw_table %>%
-  rename_with(~paste0("raw_", .), -variable) %>%
-  full_join(
-    clean_table %>% rename_with(~paste0("clean_", .), -variable),
-    by = "variable"
-  )
+raw_clean_table <- make_tableone(raw_data, clean_data, "raw", "clean")
+View(raw_clean_table)
 
 View(raw_clean_table)
 
 # --------
 # table 2: dev vs test
 
-dev_table <- desc_stats(dev_data)
-test_table <- desc_stats(test_data)
-
-
-dev_test_table <- dev_table %>%
-  rename(
-    dev_mean = mean,
-    dev_sd  = sd,
-    dev_iqr  = iqr
-  ) %>%
-  left_join(
-    test_table %>%
-      rename(
-        test_mean = mean,
-        test_sd  = sd,
-        test_iqr  = iqr
-      ),
-    by = "variable"
-  )
-
+dev_test_table <- make_tableone(dev_data, test_data, "dev", "test")
 View(dev_test_table)
 
-# ---------
-# table 3: 
-
-final_table <- raw_clean_table %>%
-  full_join(dev_test_table, by = "variable")
-
-View(final_table)
-
 # --------
-# table 4: imp vs syn trains
+# table 3: imp vs syn trains
 
-train_imp_table <- desc_stats(train_imp)
-syn_train_table <- desc_stats(syn_train)
-
-train_compare_table <- train_imp_table %>%
-  rename_with(~paste0("imp_", .), -variable) %>%
-  full_join(
-    syn_train_table %>% rename_with(~paste0("syn_", .), -variable),
-    by = "variable"
-  )
-
+train_compare_table <- make_tableone(train_imp, syn_train, "imputed", "synthetic")
 View(train_compare_table)
