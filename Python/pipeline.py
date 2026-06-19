@@ -229,7 +229,7 @@ MVCatBoost = TransformedTargetRegressor(
     regressor=CatBoostRegressor(
         loss_function='MultiRMSE',
         random_seed=seed,
-        verbose=0  # Silenzia il log di training
+        verbose=0  
     ),
     transformer=StandardScaler()
 )
@@ -401,7 +401,7 @@ for group_name, group in [ ('MTL', mtl_models), ('STL', stl_models) ]:
         gs.fit(X_global, y_global)
         elapsed = time.time() - t0
         
-        nrmse = gs.best_score_
+        nrmse = -gs.best_score_
 
         results[model_name] = {
             'best_params': gs.best_params_,
@@ -409,7 +409,7 @@ for group_name, group in [ ('MTL', mtl_models), ('STL', stl_models) ]:
             'group': group_name,
             'time_min': elapsed / 60
         }
-        print (f'Done in {elapsed/60:.1f} mins \n NRMSE: {nrmse:.4f}')
+        print (f'Done in {elapsed/60:.1f} mins | NRMSE: {nrmse:.4f}')
 
 
 
