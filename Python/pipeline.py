@@ -22,6 +22,8 @@ from sklearn.linear_model import MultiTaskElasticNet
 from catboost import CatBoostRegressor
 from sklearn.linear_model import ElasticNet
 
+import time
+
 
 
 
@@ -312,7 +314,7 @@ STL_RF = MultiOutputRegressor(
 rf_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in rf_stl_grid.items()}
  
 # --- ElasticNet STL ---
-# ElasticNet univariato: nessuna penalità condivisa tra outcome
+# Univariate ElasticNet
 STL_EN = MultiOutputRegressor(
     TransformedTargetRegressor(
         regressor=ElasticNet(max_iter=5000, random_state=seed),
@@ -370,3 +372,109 @@ GS_STL_CB = GridSearchCV(
     verbose=1
 )
  
+
+# ==================== #
+#       FITTING        #
+# ==================== #
+
+mtl_models = {
+    'MVRF':        GS_MVRF,
+    'MTEN':        GS_MTEN,
+    'MVCatBoost':  GS_MVCatBoost,
+}
+
+stl_models = {
+    'STL_RF':  GS_STL_RF,
+    'STL_EN':  GS_STL_EN,
+    'STL_CB':  GS_STL_CB,
+}
+
+results = {}
+
+
+for group_name, group in [ ('MTL', mtl_models), ('STL', stl_models) ]:
+    print( f'Fitting {group_name} models')
+
+    for model_name, gs in group.items():
+        print(f'Fitting {model_name}...')
+        t0 = time.time()
+        gs.fit(X_global, y_global)
+        elapsed = time.time() - t0
+        
+        nrmse = gs.best_score_
+
+        results[model_name] = {
+            'best_params': gs.best_params_,
+            'nrmse': nrmse,
+            'group': group_name,
+            'time_min': elapsed / 60
+        }
+        print (f'Done in {elapsed/60:.1f} mins \n NRMSE: {nrmse:.4f}')
+
+
+
+# ==================== #
+#       RESULTS        #
+# ==================== #
+
+print(f"{'Model':<15} {'Group':<8} {'Mean NRMSE':<15} {'Time (min)':<12}")
+print(f"{'-'*50}")
+
+for name, res in results.items():
+    print(f"{name:<15} {res['group']:<8} {res['nrmse']:<15.4f} {res['time_min']:<12.1f}")
+
+best_mtl = min((x for x in results if results[x]['group'] == 'MTL'), 
+                key=lambda x: results[x]['nrmse'])
+best_stl = min((x for x in results if results[x]['group'] == 'STL'), 
+                key=lambda x: results[x]['nrmse'])
+
+print(f"\n→ Best MTL: {best_mtl} (NRMSE={results[best_mtl]['nrmse']:.4f})")
+print(f"→ Best STL: {best_stl} (NRMSE={results[best_stl]['nrmse']:.4f})")
+
+# GridsearchCV object of best MTL and STL models
+best_mtl_gs = mtl_models[best_mtl]
+best_stl_gs = stl_models[best_stl]
+
+
+
+# =========================== #
+#       FINAL COMPARISON      #
+# =========================== #
+
+development = pd.read_csv('development_synthetic/development_syn.csv')
+test = pd.read_csv('hold_out_imputed/test.csv')
+
+feature_cols = [c for c in development.columns if c not in outcomes]
+
+X_dev  = development[feature_cols]
+y_dev  = development[outcomes]
+X_test = test[feature_cols]
+y_test = test[outcomes]
+
+# training best models
+best_mtl_gs.best_estimator_.fit(X_dev, y_dev)
+best_stl_gs.best_estimator_.fit(X_dev, y_dev)
+
+# predictions on test set
+y_pred_mtl = best_mtl_gs.best_estimator_.predict(X_test) 
+y_pred_stl = best_stl_gs.best_estimator_.predict(X_test) 
+
+rmse_results = {}
+for i, outcome in enumerate(outcomes):
+    rmse_mtl = np.sqrt(np.mean((y_test[outcome].values - y_pred_mtl[:, i])**2))
+    rmse_stl = np.sqrt(np.mean((y_test[outcome].values - y_pred_stl[:, i])**2))
+    rmse_results[outcome] = {'MTL': rmse_mtl, 'STL': rmse_stl}
+
+
+print(f"  FINAL COMPARISON — RMSE per outcome (test set)")
+print(f"{'Outcome':<12} {best_mtl:<15} {best_stl:<15} {'Migliore':<10}")
+print(f"{'-'*50}")
+
+for outcome, res in rmse_results.items():
+    winner = best_mtl if res['MTL'] < res['STL'] else best_stl
+    print(f"{outcome:<12} {res['MTL']:<15.4f} {res['STL']:<15.4f} {winner:<10}")
+
+mean_rmse_mtl = np.mean([v['MTL'] for v in rmse_results.values()])
+mean_rmse_stl = np.mean([v['STL'] for v in rmse_results.values()])
+print(f"{'-'*50}")
+print(f"{'Media':<12} {mean_rmse_mtl:<15.4f} {mean_rmse_stl:<15.4f}")
