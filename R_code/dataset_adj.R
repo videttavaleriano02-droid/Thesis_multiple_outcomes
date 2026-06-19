@@ -132,7 +132,8 @@ var_to_omit <- c( 'scala_instabilit_clinica___1_t1_dimissione_ex_2_arm_1','scala
                   "sede_lesione___1_t0_arm_1", "sede_lesione___2_t0_arm_1", "sede_lesione___3_t0_arm_1",
                   "sede_lesione___4_t0_arm_1", "sede_lesione___5_t0_arm_1", "sede_lesione___6_t0_arm_1",
                   "sede_lesione___7_t0_arm_1", "sede_lesione___8_t0_arm_1", "sede_lesione___9_t0_arm_1",
-                  "sede_lesione___10_t0_arm_1"
+                  "sede_lesione___10_t0_arm_1", "dimissione_presso_t1", "scala_instabilita_clinica_2_t1",
+                  "scala_instabilita_clinica_1_t1"
 )
 
 
