@@ -414,6 +414,7 @@ for group_name, group in [ ('MTL', mtl_models), ('STL', stl_models) ]:
 #       RESULTS        #
 # ==================== #
 
+print(f"{'-'*50}")
 print(f"{'Model':<15} {'Group':<8} {'Mean NRMSE':<15} {'Time (min)':<12}")
 print(f"{'-'*50}")
 
@@ -464,7 +465,8 @@ for i, outcome in enumerate(outcomes):
 
 
 print(f"  FINAL COMPARISON — RMSE by outcome (test set)")
-print(f"{'Outcome':<12} {best_mtl:<15} {best_stl:<15} {'Migliore':<10}")
+print(f"{'-'*50}")
+print(f"{'Outcome':<12} {best_mtl:<15} {best_stl:<15} {'Best':<10}")
 print(f"{'-'*50}")
 
 for outcome, res in rmse_results.items():
