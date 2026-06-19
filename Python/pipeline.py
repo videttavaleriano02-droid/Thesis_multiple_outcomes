@@ -25,8 +25,6 @@ from sklearn.linear_model import ElasticNet
 import time
 
 
-
-
 # ============================== #
 #           Functions            #
 # ============================== #
@@ -40,7 +38,7 @@ custom_scorer = make_scorer(normalized_rmse, greater_is_better=False)
 
 
 # Set random seed for reproducibility
-seed = 2026
+seed = 2727
 np.random.seed(seed)
 
 # ============================== #
@@ -94,7 +92,6 @@ X_global = pd.concat(X_chunks, axis=0).reset_index(drop=True)
 y_global = pd.concat(y_chunks, axis=0).reset_index(drop=True)
 
 
-
 # ==================== #
 #       GRIDS          #
 # ==================== #
@@ -110,7 +107,7 @@ rf_grid = {
     'n_estimators': [200, 500, 1000],
     'max_depth': [5, 10, 15, 20],
     'min_samples_split': [10, 20, 50],
-    'min_samples_leaf': [5, 10, 20],
+    'min_samples_leaf': [2, 5, 10, 20],
     'max_features': ['sqrt', 0.33, 0.5]
 }
 
@@ -128,8 +125,8 @@ catboost_grid = {
 # MultiTaskElasticNet: penalità L2,1 condivisa → se alpha=0.1 azzera feature_età,
 # la azzera per TUTTI e 3 gli outcome contemporaneamente
 elasticnet_grid = {
-    'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0],
-    'l1_ratio': [0, 0.25, 0.5, 0.75, 1.0]
+    'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 10, 100],
+    'l1_ratio': [0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0]
 }
 
 # rfsrc_grid <- list(
@@ -164,7 +161,7 @@ rf_stl_grid = {
     'n_estimators': [200, 500, 1000],
     'max_depth': [5, 10, 15, 20],
     'min_samples_split': [10, 20, 50],
-    'min_samples_leaf': [5, 10, 20],
+    'min_samples_leaf': [2, 5, 10, 20],
     'max_features': ['sqrt', 0.33, 0.5]
 }
 
@@ -183,8 +180,8 @@ catboost_stl_grid = {
 # ElasticNet univariato: penalità indipendente per ogni outcome
 # Esempio: alpha=0.1 può azzerare feature_età su mbi_t1 ma tenerla su mrs_t1
 elasticnet_stl_grid = {
-    'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0],
-    'l1_ratio': [0, 0.25, 0.5, 0.75, 1.0]
+    'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 10, 100],
+    'l1_ratio': [0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0]
 }
 
 
@@ -409,7 +406,7 @@ for group_name, group in [ ('MTL', mtl_models), ('STL', stl_models) ]:
             'group': group_name,
             'time_min': elapsed / 60
         }
-        print (f'Done in {elapsed/60:.1f} mins | NRMSE: {nrmse:.4f}')
+        print (f'Done in {elapsed/60:.3f} mins | NRMSE: {nrmse:.4f}')
 
 
 
@@ -421,7 +418,7 @@ print(f"{'Model':<15} {'Group':<8} {'Mean NRMSE':<15} {'Time (min)':<12}")
 print(f"{'-'*50}")
 
 for name, res in results.items():
-    print(f"{name:<15} {res['group']:<8} {res['nrmse']:<15.4f} {res['time_min']:<12.1f}")
+    print(f"{name:<15} {res['group']:<8} {res['nrmse']:<15.4f} {res['time_min']:<12.3f}")
 
 best_mtl = min((x for x in results if results[x]['group'] == 'MTL'), 
                 key=lambda x: results[x]['nrmse'])
@@ -466,7 +463,7 @@ for i, outcome in enumerate(outcomes):
     rmse_results[outcome] = {'MTL': rmse_mtl, 'STL': rmse_stl}
 
 
-print(f"  FINAL COMPARISON — RMSE per outcome (test set)")
+print(f"  FINAL COMPARISON — RMSE by outcome (test set)")
 print(f"{'Outcome':<12} {best_mtl:<15} {best_stl:<15} {'Migliore':<10}")
 print(f"{'-'*50}")
 
@@ -477,4 +474,4 @@ for outcome, res in rmse_results.items():
 mean_rmse_mtl = np.mean([v['MTL'] for v in rmse_results.values()])
 mean_rmse_stl = np.mean([v['STL'] for v in rmse_results.values()])
 print(f"{'-'*50}")
-print(f"{'Media':<12} {mean_rmse_mtl:<15.4f} {mean_rmse_stl:<15.4f}")
+print(f"{'Mean':<12} {mean_rmse_mtl:<15.4f} {mean_rmse_stl:<15.4f}")
