@@ -101,8 +101,6 @@ y_global = pd.concat(y_chunks, axis=0).reset_index(drop=True)
 # ========== #
 
 # --- Random Forest MTL ---
-# Esempio: n_estimators=1000, max_depth=10 → 1000 alberi profondi max 10 livelli
-# su y shape (2000, 3) → ogni split minimizza MSE(mbi) + MSE(mrs) + MSE(tct) insieme
 rf_grid = {
     'n_estimators': [200, 500, 1000],
     'max_depth': [5, 10, 15, 20],
@@ -112,7 +110,6 @@ rf_grid = {
 }
 
 # --- CatBoost MTL ---
-# loss_function='MultiRMSE' → gradient calcolato congiuntamente su tutti e 3 gli outcome
 catboost_grid = {
     'iterations': [300, 600, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
@@ -122,8 +119,6 @@ catboost_grid = {
 }
 
 # --- ElasticNet MTL ---
-# MultiTaskElasticNet: penalità L2,1 condivisa → se alpha=0.1 azzera feature_età,
-# la azzera per TUTTI e 3 gli outcome contemporaneamente
 elasticnet_grid = {
     'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 10, 100],
     'l1_ratio': [0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0]
@@ -155,8 +150,6 @@ elasticnet_grid = {
 # =========== #
 
 # --- Random Forest STL ---
-# Esempio: n_estimators=1000, max_depth=10 → 3 foreste indipendenti (una per outcome)
-# rf_mbi splitta considerando solo MSE(mbi_t1), ignora mrs e tct
 rf_stl_grid = {
     'n_estimators': [200, 500, 1000],
     'max_depth': [5, 10, 15, 20],
@@ -166,8 +159,6 @@ rf_stl_grid = {
 }
 
 # --- CatBoost STL ---
-# loss_function='RMSE' → gradient calcolato separatamente per ogni outcome
-# Esempio: cb_mrs ottimizza solo RMSE(mrs_t1), non sa nulla di mbi e tct
 catboost_stl_grid = {
     'iterations': [300, 600, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
@@ -177,8 +168,6 @@ catboost_stl_grid = {
 }
 
 # --- ElasticNet STL ---
-# ElasticNet univariato: penalità indipendente per ogni outcome
-# Esempio: alpha=0.1 può azzerare feature_età su mbi_t1 ma tenerla su mrs_t1
 elasticnet_stl_grid = {
     'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 10, 100],
     'l1_ratio': [0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0]
@@ -283,23 +272,23 @@ GS_MVCatBoost = GridSearchCV(
  
 # Ogni modello STL è indipendente per outcome.
 # Esempio RF STL: 
-#   rf_mbi fitta su y['mbi_t1'] → split basati solo su mbi_t1
-#   rf_mrs fitta su y['mrs_t1'] → split basati solo su mrs_t1
-#   rf_tct fitta su y['tct_t1'] → split basati solo su tct_t1
+#   rf_mbi fitta su y['mbi_t1'] -> split basati solo su mbi_t1
+#   rf_mrs fitta su y['mrs_t1'] -> split basati solo su mrs_t1
+#   rf_tct fitta su y['tct_t1'] -> split basati solo su tct_t1
 #
-# MultiOutputRegressor li wrappa insieme → possiamo passare y_global intero a GridSearchCV
+# MultiOutputRegressor li wrappa insieme -> possiamo passare y_global intero a GridSearchCV
 # e usare custom_scorer che aggrega i 3 NRMSE in un unico score.
 #
 # Stack dei wrapper per ogni modello STL:
-#   MultiOutputRegressor(          ← wrappa i 3 modelli, riceve y shape (n, 3)
-#       TransformedTargetRegressor(    ← standardizza Y fold-by-fold per ogni outcome
+#   MultiOutputRegressor(          <- wrappa i 3 modelli, riceve y shape (n, 3)
+#       TransformedTargetRegressor(    <- standardizza Y fold-by-fold per ogni outcome
 #           regressor=<modello>
 #       )
 #   )
 # Prefisso parametri grid: estimator__regressor__<param>
-#   estimator__       → MultiOutputRegressor
-#   regressor__       → TransformedTargetRegressor
-#   <param>           → parametro del modello base
+#   estimator__       -> MultiOutputRegressor
+#   regressor__       -> TransformedTargetRegressor
+#   <param>           -> parametro del modello base
  
 # --- Random Forest STL ---
 STL_RF = MultiOutputRegressor(
@@ -311,7 +300,6 @@ STL_RF = MultiOutputRegressor(
 rf_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in rf_stl_grid.items()}
  
 # --- ElasticNet STL ---
-# Univariate ElasticNet
 STL_EN = MultiOutputRegressor(
     TransformedTargetRegressor(
         regressor=ElasticNet(max_iter=5000, random_state=seed),
@@ -336,7 +324,7 @@ cb_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in catboost_stl_gr
 
 # ==================== #
 # GRID SEARCH WRAPPERS #
-# (Single-task)         #
+# (Single-task)        #
 # ==================== #
 
 GS_STL_RF = GridSearchCV(
