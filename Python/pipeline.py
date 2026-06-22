@@ -120,12 +120,13 @@ catboost_grid = {
 }
 
 # --- XGBoost MTL ---
+#     'reg_alpha':     [0, 0.1, 0.5, 1.0],  # L1: spinge pesi foglie verso zero
+# per ora teniamo fuori, non penso sia utile
 xgboost_grid = {
     'n_estimators':  [300, 600, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
     'max_depth':     [3, 4, 6],
     'reg_lambda':    [1, 5, 10, 20],       # L2: penalizza pesi foglie grandi
-    'reg_alpha':     [0, 0.1, 0.5, 1.0],  # L1: spinge pesi foglie verso zero
     'subsample':     [0.6, 0.8, 1.0],     # frazione obs per albero
     'colsample_bytree': [0.6, 0.8, 1.0],  # frazione feature per albero
 }
@@ -180,12 +181,13 @@ catboost_stl_grid = {
 }
 
 # --- XGBoost STL ---
+#     'reg_alpha':     [0, 0.1, 0.5, 1.0],  # L1: spinge pesi foglie verso zero
+# per ora teniamo fuori, non penso sia utile
 xgboost_stl_grid = {
     'n_estimators': [300, 600, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
     'max_depth': [3, 4, 6],
     'reg_lambda': [1, 3, 5, 10, 20],
-    'reg_alpha':     [0, 0.1, 0.5, 1.0],  # L1: spinge pesi foglie verso zero
     'subsample':     [0.6, 0.8, 1.0],     # frazione obs per albero
     'colsample_bytree': [0.6, 0.8, 1.0],  # frazione feature per albero
 }
