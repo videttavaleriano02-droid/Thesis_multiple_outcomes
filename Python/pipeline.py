@@ -21,6 +21,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import MultiTaskElasticNet
 from catboost import CatBoostRegressor
 from sklearn.linear_model import ElasticNet
+from xgboost import XGBRegressor
 
 import time
 
@@ -118,6 +119,14 @@ catboost_grid = {
     'loss_function': ['MultiRMSE']
 }
 
+# --- XGBoost MTL ---
+xgboost_grid = {
+    'n_estimators': [300, 600, 1000],
+    'learning_rate': [0.01, 0.05, 0.1],
+    'max_depth': [3, 4, 6],
+    'reg_lambda': [1, 3, 5, 10, 20],  
+}
+
 # --- ElasticNet MTL ---
 elasticnet_grid = {
     'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 10, 100],
@@ -167,6 +176,14 @@ catboost_stl_grid = {
     'loss_function': ['RMSE']
 }
 
+# --- XGBoost STL ---
+xgboost_stl_grid = {
+    'n_estimators': [300, 600, 1000],
+    'learning_rate': [0.01, 0.05, 0.1],
+    'max_depth': [3, 4, 6],
+    'reg_lambda': [1, 3, 5, 10, 20],
+}
+
 # --- ElasticNet STL ---
 elasticnet_stl_grid = {
     'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 10, 100],
@@ -208,14 +225,25 @@ MTEN = TransformedTargetRegressor(
 
 # -----------------
 # CATBOOST (MultiTask)
-# CatBoostRegressor con loss_function='MultiRMSE' supporta multi-output nativo
- 
- 
+
 MVCatBoost = TransformedTargetRegressor(
     regressor=CatBoostRegressor(
         loss_function='MultiRMSE',
         random_seed=seed,
         verbose=0  
+    ),
+    transformer=StandardScaler()
+)
+
+# -----------------
+# XGBOOST (MultiTask)
+
+MVXGB = TransformedTargetRegressor(
+    regressor=XGBRegressor(
+        tree_method='hist',           # più efficiente su dataset medi
+        multi_strategy='multi_output_tree',
+        random_state=seed,
+        verbosity=0
     ),
     transformer=StandardScaler()
 )
@@ -234,6 +262,8 @@ rf_mtl_param_grid = {f'regressor__{k}': v for k, v in rf_grid.items()}
 en_mtl_param_grid = {f'regressor__{k}': v for k, v in elasticnet_grid.items()}
 cb_mtl_param_grid = {f'regressor__{k}': v for k, v in catboost_grid.items()
                      if k != 'loss_function'}  # loss_function è fixed, non va in grid
+xgb_mtl_param_grid = {f'regressor__{k}': v for k, v in xgboost_grid.items()}
+
  
 GS_MVRF = GridSearchCV(
     estimator=MVRF,
@@ -265,6 +295,15 @@ GS_MVCatBoost = GridSearchCV(
     verbose=1
 )
 
+GS_MVXGB = GridSearchCV(
+    estimator=MVXGB,
+    param_grid=xgb_mtl_param_grid,
+    cv=custom_cv,
+    scoring=custom_scorer,
+    refit=True,
+    n_jobs=-1,
+    verbose=1
+)
 
 # =========== #
 # SINGLE-TASK #
@@ -322,6 +361,19 @@ STL_CB = MultiOutputRegressor(
 cb_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in catboost_stl_grid.items()
                      if k != 'loss_function'}
 
+STL_XGB = MultiOutputRegressor(
+    TransformedTargetRegressor(
+        regressor=XGBRegressor(
+            tree_method='hist',
+            random_state=seed,
+            verbosity=0
+        ),
+        transformer=StandardScaler()
+    )
+)
+xgb_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in xgboost_stl_grid.items()}
+
+
 # ==================== #
 # GRID SEARCH WRAPPERS #
 # (Single-task)        #
@@ -356,6 +408,17 @@ GS_STL_CB = GridSearchCV(
     n_jobs=-1,
     verbose=1
 )
+
+GS_STL_XGB = GridSearchCV(
+    estimator=STL_XGB,
+    param_grid=xgb_stl_param_grid,
+    cv=custom_cv,
+    scoring=custom_scorer,
+    refit=True,
+    n_jobs=-1,
+    verbose=1
+)
+
  
 
 # ==================== #
@@ -363,15 +426,17 @@ GS_STL_CB = GridSearchCV(
 # ==================== #
 
 mtl_models = {
-    'MVRF':        GS_MVRF,
-    'MTEN':        GS_MTEN,
-    'MVCatBoost':  GS_MVCatBoost,
+    'MVRF':       GS_MVRF,
+    'MTEN':       GS_MTEN,
+    'MVCatBoost': GS_MVCatBoost,
+    'MVXGB':      GS_MVXGB,   
 }
 
 stl_models = {
     'STL_RF':  GS_STL_RF,
     'STL_EN':  GS_STL_EN,
     'STL_CB':  GS_STL_CB,
+    'STL_XGB': GS_STL_XGB,  
 }
 
 results = {}
