@@ -487,8 +487,8 @@ best_mtl = min((x for x in results if results[x]['group'] == 'MTL'),
 best_stl = min((x for x in results if results[x]['group'] == 'STL'), 
                 key=lambda x: results[x]['nrmse'])
 
-print(f"\n→ Best MTL: {best_mtl} (NRMSE={results[best_mtl]['nrmse']:.4f})")
-print(f"→ Best STL: {best_stl} (NRMSE={results[best_stl]['nrmse']:.4f})")
+print(f"\n→ Best MTL: {best_mtl} (NRMSE={results[best_mtl]['nrmse']:.5f})")
+print(f"→ Best STL: {best_stl} (NRMSE={results[best_stl]['nrmse']:.5f})")
 
 # GridsearchCV object of best MTL and STL models
 best_mtl_gs = mtl_models[best_mtl]
