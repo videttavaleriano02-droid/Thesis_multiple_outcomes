@@ -295,9 +295,9 @@ GS_MVXGB = GridSearchCV(
  
 #Each stl model is trained independently on each target.
 # Example RF STL: 
-#   rf_mbi fitta su y['mbi_t1'] -> split based only on mbi_t1
-#   rf_mrs fitta su y['mrs_t1'] -> split based only on mrs_t1
-#   rf_tct fitta su y['tct_t1'] -> split based only on tct_t1
+#   rf_mbi fits on y['mbi_t1'] -> split based only on mbi_t1
+#   rf_mrs fits on y['mrs_t1'] -> split based only on mrs_t1
+#   rf_tct fits on y['tct_t1'] -> split based only on tct_t1
 #
 # MultiOutputRegressor wraps them together -> we can pass y_global into GridSearchCV
 # and use custom_scorer which aggregates the 3 NRMSE into a single score.
@@ -311,7 +311,7 @@ GS_MVXGB = GridSearchCV(
 # Prefix: estimator__regressor__<param>
 #   estimator__       -> MultiOutputRegressor
 #   regressor__       -> TransformedTargetRegressor
-#   <param>           -> parametro del modello base
+#   <param>           -> base model parameter
  
 # --- Random Forest STL ---
 STL_RF = MultiOutputRegressor(
