@@ -30,7 +30,7 @@ import time
 #           Functions            #
 # ============================== #
 
-def normalized_rmse(y_true, y_pred): # chiedere a Chiara se è ok usare sd() test. 
+def normalized_rmse(y_true, y_pred): 
     stds = np.std(y_true, axis=0)
     rmse_per_outcome = np.sqrt(np.mean((y_true - y_pred)**2, axis=0))
     return np.mean(rmse_per_outcome / stds)
@@ -65,26 +65,25 @@ custom_cv = []
 current_idx = 0
 
 for t_path, v_path in zip(train_files, val_files):
-    # Caricamento dei singoli CSV
     df_train = pd.read_csv(t_path)
     df_val = pd.read_csv(v_path)
-    # Separazione Feature (X) e Target (y)
+    # separate Feature (X) and Target (y)
     feature_cols = [c for c in df_train.columns if c not in outcomes]
     X_tr, y_tr = df_train[feature_cols], df_train[outcomes]
     X_va, y_va = df_val[feature_cols], df_val[outcomes]
-    # Concateniamo Train e Val di QUESTO specifico fold uno sotto l'altro
+    # Bind Train and Val of this fold one below the other
     X_fold = pd.concat([X_tr, X_va], axis=0)
     y_fold = pd.concat([y_tr, y_va], axis=0)
     X_chunks.append(X_fold)
     y_chunks.append(y_fold)
-    # Calcolo degli indici assoluti nella futura matrice globale
+    # Absolute indeces for the global matrix
     len_tr = len(X_tr)
     len_va = len(X_va)
     indici_train = np.arange(current_idx, current_idx + len_tr)
     indici_val = np.arange(current_idx + len_tr, current_idx + len_tr + len_va)
-    # Salviamo la tupla (train, val) per questo fold
+    # Save the tuple of indices for this fold in the custom_cv list
     custom_cv.append((indici_train, indici_val))
-    # Incrementiamo il puntatore per il prossimo fold
+    # go to next fold
     current_idx += (len_tr + len_va)
 
 
@@ -120,43 +119,20 @@ catboost_grid = {
 }
 
 # --- XGBoost MTL ---
-#     'reg_alpha':     [0, 0.1, 0.5, 1.0],  # L1: spinge pesi foglie verso zero
-# per ora teniamo fuori, non penso sia utile
+#     'reg_alpha':     [0, 0.1, 0.5, 1.0],  # L1: weights of leaves pushed towards zero
 xgboost_grid = {
     'n_estimators':  [300, 600, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
     'max_depth':     [3, 4, 6],
-    'reg_lambda':    [1, 5, 10, 20],       # L2: penalizza pesi foglie grandi
-    'subsample':     [0.6, 0.8, 1.0],     # frazione obs per albero
-    'colsample_bytree': [0.6, 0.8, 1.0],  # frazione feature per albero
+    'reg_lambda':    [1, 5, 10, 20],       # L2: penalises weights for big leaves
+    'subsample':     [0.6, 0.8, 1.0],      # obs fraction for each tree
+    'colsample_bytree': [0.6, 0.8, 1.0],   # feature fraction for each tree
 }
-
 # --- ElasticNet MTL ---
 elasticnet_grid = {
     'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 10, 100],
     'l1_ratio': [0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0]
 }
-
-# rfsrc_grid <- list(
-#   ntree = c(500, 1000),
-#   nodesize = c(1, 5, 10, 15),       # Controlla l'overfitting (dimensione minima nodo terminale)
-#   mtry = c(                         # Feature valutate ad ogni split
-#     floor(sqrt(ncol(data))), 
-#     floor(ncol(data) / 3), 
-#     floor(ncol(data) / 2)
-#   ),
-#   splitrule = c("mv.mse","mahalanobis")           # Regola di split multivariata (MSE)
-# )
-
-# nn_grid = {
-#     # Architettura dei layer condivisi (Hard Sharing)
-#     'shared_hidden_layers': [[64, 32], [128, 64], [256, 128, 64]],
-#     'learning_rate': [1e-4, 1e-3, 5e-3],
-#     'dropout_rate': [0.1, 0.2, 0.3],       # Regolarizzazione per strati nascosti
-#     'batch_size': [32, 64, 128],
-#     'epochs': [50, 100, 200]               # Spesso gestito con Early Stopping piuttosto che via grid
-# }
-
 
 # =========== #
 # SINGLE-TASK #
@@ -181,15 +157,15 @@ catboost_stl_grid = {
 }
 
 # --- XGBoost STL ---
-#     'reg_alpha':     [0, 0.1, 0.5, 1.0],  # L1: spinge pesi foglie verso zero
-# per ora teniamo fuori, non penso sia utile
+#     'reg_alpha':     [0, 0.1, 0.5, 1.0],  # L1: weights of leaves pushed towards zero
+
 xgboost_stl_grid = {
     'n_estimators': [300, 600, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
     'max_depth': [3, 4, 6],
     'reg_lambda': [1, 3, 5, 10, 20],
-    'subsample':     [0.6, 0.8, 1.0],     # frazione obs per albero
-    'colsample_bytree': [0.6, 0.8, 1.0],  # frazione feature per albero
+    'subsample':     [0.6, 0.8, 1.0],     # obs fraction for each tree
+    'colsample_bytree': [0.6, 0.8, 1.0],  # feature fraction for each tree
 }
 
 # --- ElasticNet STL ---
@@ -203,10 +179,10 @@ elasticnet_stl_grid = {
 #       PIPELINE       #
 # ==================== #
 
-# dobbiamo STD e normalizzare i target per evitare che scale diverse influenzino l'addestramento dei modelli multitask, 
-# #specialmente quelli basati su gradient boosting e reti neurali. Per questo, possiamo utilizzare lo StandardScaler 
-# di scikit-learn per standardizzare i target prima dell'addestramento e poi invertire la trasformazione sulle 
-# predizioni finali.
+# We need to standardize and normalize the targets to prevent different scales from influencing 
+# #the training of multitask models.
+# # To do this, we can use scikit-learn's StandardScaler to standardize the targets before training and then apply
+#  the inverse transformation to the final predictions
 
 # Pipeline to scale features
 pipeline_features = Pipeline([('scaler_x', StandardScaler())])
@@ -248,7 +224,7 @@ MVCatBoost = TransformedTargetRegressor(
 
 MVXGB = TransformedTargetRegressor(
     regressor=XGBRegressor(
-        tree_method='hist',           # più efficiente su dataset medi
+        tree_method='hist',           
         multi_strategy='multi_output_tree',
         random_state=seed,
         verbosity=0
@@ -262,14 +238,14 @@ MVXGB = TransformedTargetRegressor(
 # (Multi-task)         #
 # ==================== #
  
-# Nota sui prefissi: i modelli sono wrappati in TransformedTargetRegressor.
-# GridSearchCV vede i parametri come: regressor__<param>
-# Esempio: RandomForestRegressor(n_estimators=...) → 'regressor__n_estimators'
+# Prefix: models are wrapped in TransformedTargetRegressor.
+# GridSearchCV sees the params as: regressor__<param>
+# Example: RandomForestRegressor(n_estimators=...) → 'regressor__n_estimators'
  
 rf_mtl_param_grid = {f'regressor__{k}': v for k, v in rf_grid.items()}
 en_mtl_param_grid = {f'regressor__{k}': v for k, v in elasticnet_grid.items()}
 cb_mtl_param_grid = {f'regressor__{k}': v for k, v in catboost_grid.items()
-                     if k != 'loss_function'}  # loss_function è fixed, non va in grid
+                     if k != 'loss_function'}  
 xgb_mtl_param_grid = {f'regressor__{k}': v for k, v in xgboost_grid.items()}
 
  
@@ -317,22 +293,22 @@ GS_MVXGB = GridSearchCV(
 # SINGLE-TASK #
 # =========== #
  
-# Ogni modello STL è indipendente per outcome.
-# Esempio RF STL: 
-#   rf_mbi fitta su y['mbi_t1'] -> split basati solo su mbi_t1
-#   rf_mrs fitta su y['mrs_t1'] -> split basati solo su mrs_t1
-#   rf_tct fitta su y['tct_t1'] -> split basati solo su tct_t1
+#Each stl model is trained independently on each target.
+# Example RF STL: 
+#   rf_mbi fitta su y['mbi_t1'] -> split based only on mbi_t1
+#   rf_mrs fitta su y['mrs_t1'] -> split based only on mrs_t1
+#   rf_tct fitta su y['tct_t1'] -> split based only on tct_t1
 #
-# MultiOutputRegressor li wrappa insieme -> possiamo passare y_global intero a GridSearchCV
-# e usare custom_scorer che aggrega i 3 NRMSE in un unico score.
+# MultiOutputRegressor wraps them together -> we can pass y_global into GridSearchCV
+# and use custom_scorer which aggregates the 3 NRMSE into a single score.
 #
-# Stack dei wrapper per ogni modello STL:
-#   MultiOutputRegressor(          <- wrappa i 3 modelli, riceve y shape (n, 3)
-#       TransformedTargetRegressor(    <- standardizza Y fold-by-fold per ogni outcome
+# Wrapper stack for each STL model:
+#   MultiOutputRegressor(          <- wraps the 3 models, receives y shape (n, 3)
+#       TransformedTargetRegressor(    <- standardizes Y fold-by-fold for each outcome
 #           regressor=<modello>
 #       )
 #   )
-# Prefisso parametri grid: estimator__regressor__<param>
+# Prefix: estimator__regressor__<param>
 #   estimator__       -> MultiOutputRegressor
 #   regressor__       -> TransformedTargetRegressor
 #   <param>           -> parametro del modello base
