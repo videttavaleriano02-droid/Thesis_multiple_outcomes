@@ -12,16 +12,15 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import make_scorer
 
 from sklearn.preprocessing import StandardScaler
-
 from sklearn.compose import TransformedTargetRegressor
-from sklearn.multioutput import MultiOutputRegressor
-
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import MultiTaskElasticNet
 from catboost import CatBoostRegressor
 from sklearn.linear_model import ElasticNet
 from xgboost import XGBRegressor
+
+from sklearn.base import clone
 
 import time
 
@@ -36,7 +35,6 @@ def normalized_rmse(y_true, y_pred):
     return np.mean(rmse_per_outcome / stds)
 
 custom_scorer = make_scorer(normalized_rmse, greater_is_better=False)
-
 
 # Set random seed for reproducibility
 seed = 2727
@@ -103,17 +101,17 @@ y_global = pd.concat(y_chunks, axis=0).reset_index(drop=True)
 # --- Random Forest MTL ---
 rf_grid = {
     'n_estimators': [200, 500, 1000],
-    'max_depth': [5, 10, 15, 20],
-    'min_samples_split': [10, 20, 50],
+    'max_depth': [5, 10, 15],
+    'min_samples_split': [10, 20],
     'min_samples_leaf': [2, 5, 10, 20],
     'max_features': ['sqrt', 0.33, 0.5]
 }
 
 # --- CatBoost MTL ---
 catboost_grid = {
-    'iterations': [300, 600, 1000],
+    'iterations': [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
-    'depth': [3, 4, 6],
+    'depth': [5, 10, 15],
     'l2_leaf_reg': [1, 3, 5, 10, 20],
     'loss_function': ['MultiRMSE']
 }
@@ -121,12 +119,12 @@ catboost_grid = {
 # --- XGBoost MTL ---
 #     'reg_alpha':     [0, 0.1, 0.5, 1.0],  # L1: weights of leaves pushed towards zero
 xgboost_grid = {
-    'n_estimators':  [300, 600, 1000],
+    'n_estimators':  [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
-    'max_depth':     [3, 4, 6],
+    'max_depth':     [5, 10, 15],
     'reg_lambda':    [1, 5, 10, 20],       # L2: penalises weights for big leaves
     'subsample':     [0.6, 0.8, 1.0],      # obs fraction for each tree
-    'colsample_bytree': [0.6, 0.8, 1.0],   # feature fraction for each tree
+    'colsample_bytree': [0.11, 0.33, 0.5],   # feature fraction for each tree
 }
 # --- ElasticNet MTL ---
 elasticnet_grid = {
@@ -141,17 +139,17 @@ elasticnet_grid = {
 # --- Random Forest STL ---
 rf_stl_grid = {
     'n_estimators': [200, 500, 1000],
-    'max_depth': [5, 10, 15, 20],
-    'min_samples_split': [10, 20, 50],
+    'max_depth': [5, 10, 15],
+    'min_samples_split': [10, 20],
     'min_samples_leaf': [2, 5, 10, 20],
     'max_features': ['sqrt', 0.33, 0.5]
 }
 
 # --- CatBoost STL ---
 catboost_stl_grid = {
-    'iterations': [300, 600, 1000],
+    'iterations': [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
-    'depth': [3, 4, 6],
+    'depth': [5, 10, 15],
     'l2_leaf_reg': [1, 3, 5, 10, 20],
     'loss_function': ['RMSE']
 }
@@ -160,12 +158,12 @@ catboost_stl_grid = {
 #     'reg_alpha':     [0, 0.1, 0.5, 1.0],  # L1: weights of leaves pushed towards zero
 
 xgboost_stl_grid = {
-    'n_estimators': [300, 600, 1000],
+    'n_estimators': [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
     'max_depth': [3, 4, 6],
     'reg_lambda': [1, 3, 5, 10, 20],
     'subsample':     [0.6, 0.8, 1.0],     # obs fraction for each tree
-    'colsample_bytree': [0.6, 0.8, 1.0],  # feature fraction for each tree
+    'colsample_bytree': [0.11, 0.33, 0.5],  # feature fraction for each tree
 }
 
 # --- ElasticNet STL ---
@@ -180,12 +178,9 @@ elasticnet_stl_grid = {
 # ==================== #
 
 # We need to standardize and normalize the targets to prevent different scales from influencing 
-# #the training of multitask models.
-# # To do this, we can use scikit-learn's StandardScaler to standardize the targets before training and then apply
+# the training of multitask models.
+# To do this, we can use scikit-learn's StandardScaler to standardize the targets before training and then apply
 #  the inverse transformation to the final predictions
-
-# Pipeline to scale features
-pipeline_features = Pipeline([('scaler_x', StandardScaler())])
 
 # ========== #
 # MULTI-TASK
@@ -194,35 +189,49 @@ pipeline_features = Pipeline([('scaler_x', StandardScaler())])
 # -----------------
 # RANDOM FOREST
 
-MVRF = TransformedTargetRegressor(
-    regressor=RandomForestRegressor(random_state=seed),
-    transformer=StandardScaler() # <--- Forza la standardizzazione di Y dentro il fold!
-)
+MVRF_pipe = Pipeline([
+    ('scaler_x', StandardScaler()),
+    ('MVRF', TransformedTargetRegressor(
+        regressor=RandomForestRegressor(random_state=seed),
+        transformer=StandardScaler()
+    )
+  )
+])
 
 # -----------------
 # ELASTIC NET (MultiTask)
 
-MTEN = TransformedTargetRegressor(
+MTEN_pipe = Pipeline([
+    ('scaler_x', StandardScaler()),
+    ('MTEN',TransformedTargetRegressor(
     regressor=MultiTaskElasticNet(max_iter=5000, random_state=seed),
-    transformer=StandardScaler()
-)
+    transformer=StandardScaler() 
+    ) 
+) 
+])
 
 # -----------------
 # CATBOOST (MultiTask)
 
-MVCatBoost = TransformedTargetRegressor(
+MVCatBoost_pipe = Pipeline( [
+    ('scaler_x', StandardScaler()),
+    ('MVCatBoost', TransformedTargetRegressor(
     regressor=CatBoostRegressor(
         loss_function='MultiRMSE',
         random_seed=seed,
         verbose=0  
     ),
     transformer=StandardScaler()
-)
+    ) 
+  ) 
+])
 
 # -----------------
 # XGBOOST (MultiTask)
 
-MVXGB = TransformedTargetRegressor(
+MVXGB_pipe = Pipeline( [
+    ('scaler_x', StandardScaler()),
+    ('MVXGB', TransformedTargetRegressor(
     regressor=XGBRegressor(
         tree_method='hist',           
         multi_strategy='multi_output_tree',
@@ -230,7 +239,9 @@ MVXGB = TransformedTargetRegressor(
         verbosity=0
     ),
     transformer=StandardScaler()
-)
+    ) 
+  ) 
+])
 
 
 # ==================== #
@@ -241,16 +252,15 @@ MVXGB = TransformedTargetRegressor(
 # Prefix: models are wrapped in TransformedTargetRegressor.
 # GridSearchCV sees the params as: regressor__<param>
 # Example: RandomForestRegressor(n_estimators=...) → 'regressor__n_estimators'
- 
-rf_mtl_param_grid = {f'regressor__{k}': v for k, v in rf_grid.items()}
-en_mtl_param_grid = {f'regressor__{k}': v for k, v in elasticnet_grid.items()}
-cb_mtl_param_grid = {f'regressor__{k}': v for k, v in catboost_grid.items()
-                     if k != 'loss_function'}  
-xgb_mtl_param_grid = {f'regressor__{k}': v for k, v in xgboost_grid.items()}
 
- 
+rf_mtl_param_grid  = {f'MVRF__regressor__{k}': v for k, v in rf_grid.items()}
+en_mtl_param_grid  = {f'MTEN__regressor__{k}': v for k, v in elasticnet_grid.items()}
+cb_mtl_param_grid  = {f'MVCatBoost__regressor__{k}': v for k, v in catboost_grid.items()
+                      if k != 'loss_function'}
+xgb_mtl_param_grid = {f'MVXGB__regressor__{k}': v for k, v in xgboost_grid.items()}
+
 GS_MVRF = GridSearchCV(
-    estimator=MVRF,
+    estimator=MVRF_pipe,
     param_grid=rf_mtl_param_grid,
     cv=custom_cv,
     scoring=custom_scorer,
@@ -260,7 +270,7 @@ GS_MVRF = GridSearchCV(
 )
  
 GS_MTEN = GridSearchCV(
-    estimator=MTEN,
+    estimator=MTEN_pipe,
     param_grid=en_mtl_param_grid,
     cv=custom_cv,
     scoring=custom_scorer,
@@ -270,7 +280,7 @@ GS_MTEN = GridSearchCV(
 )
  
 GS_MVCatBoost = GridSearchCV(
-    estimator=MVCatBoost,
+    estimator=MVCatBoost_pipe,
     param_grid=cb_mtl_param_grid,
     cv=custom_cv,
     scoring=custom_scorer,
@@ -280,7 +290,7 @@ GS_MVCatBoost = GridSearchCV(
 )
 
 GS_MVXGB = GridSearchCV(
-    estimator=MVXGB,
+    estimator=MVXGB_pipe,
     param_grid=xgb_mtl_param_grid,
     cv=custom_cv,
     scoring=custom_scorer,
@@ -298,110 +308,76 @@ GS_MVXGB = GridSearchCV(
 #   rf_mbi fits on y['mbi_t1'] -> split based only on mbi_t1
 #   rf_mrs fits on y['mrs_t1'] -> split based only on mrs_t1
 #   rf_tct fits on y['tct_t1'] -> split based only on tct_t1
-#
-# MultiOutputRegressor wraps them together -> we can pass y_global into GridSearchCV
-# and use custom_scorer which aggregates the 3 NRMSE into a single score.
-#
-# Wrapper stack for each STL model:
-#   MultiOutputRegressor(          <- wraps the 3 models, receives y shape (n, 3)
-#       TransformedTargetRegressor(    <- standardizes Y fold-by-fold for each outcome
-#           regressor=<modello>
-#       )
-#   )
+
 # Prefix: estimator__regressor__<param>
 #   estimator__       -> MultiOutputRegressor
 #   regressor__       -> TransformedTargetRegressor
 #   <param>           -> base model parameter
  
 # --- Random Forest STL ---
-STL_RF = MultiOutputRegressor(
-    TransformedTargetRegressor(
+STL_RF_pipe = Pipeline([
+    ('scaler_x', StandardScaler()),
+    ('STL_RF', TransformedTargetRegressor(
         regressor=RandomForestRegressor(random_state=seed),
         transformer=StandardScaler()
     )
-)
-rf_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in rf_stl_grid.items()}
- 
+    )
+])
+
 # --- ElasticNet STL ---
-STL_EN = MultiOutputRegressor(
-    TransformedTargetRegressor(
+STL_EN_pipe = Pipeline([
+    ('scaler_x', StandardScaler()),
+    ('STL_EN', TransformedTargetRegressor(
         regressor=ElasticNet(max_iter=5000, random_state=seed),
         transformer=StandardScaler()
     )
-)
-en_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in elasticnet_stl_grid.items()}
- 
+    )
+])
+
 # --- CatBoost STL ---
-STL_CB = MultiOutputRegressor(
-    TransformedTargetRegressor(
-        regressor=CatBoostRegressor(
-            loss_function='RMSE',
-            random_seed=seed,
-            verbose=0
-        ),
+STL_CB_pipe = Pipeline([
+    ('scaler_x', StandardScaler()),
+    ('STL_CB', TransformedTargetRegressor(
+        regressor=CatBoostRegressor(loss_function='RMSE', random_seed=seed, verbose=0),
         transformer=StandardScaler()
     )
-)
-cb_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in catboost_stl_grid.items()
-                     if k != 'loss_function'}
+    )
+])
 
-STL_XGB = MultiOutputRegressor(
-    TransformedTargetRegressor(
-        regressor=XGBRegressor(
-            tree_method='hist',
-            random_state=seed,
-            verbosity=0
-        ),
+# --- XGBoost STL ---
+STL_XGB_pipe = Pipeline([
+    ('scaler_x', StandardScaler()),
+    ('STL_XGB', TransformedTargetRegressor(
+        regressor=XGBRegressor(tree_method='hist', random_state=seed, verbosity=0),
         transformer=StandardScaler()
     )
-)
-xgb_stl_param_grid = {f'estimator__regressor__{k}': v for k, v in xgboost_stl_grid.items()}
+    )
+])
 
+rf_stl_param_grid  = {f'STL_RF__regressor__{k}': v for k, v in rf_stl_grid.items()}
+en_stl_param_grid  = {f'STL_EN__regressor__{k}': v for k, v in elasticnet_stl_grid.items()}
+cb_stl_param_grid  = {f'STL_CB__regressor__{k}': v for k, v in catboost_stl_grid.items()
+                      if k != 'loss_function'}
+xgb_stl_param_grid = {f'STL_XGB__regressor__{k}': v for k, v in xgboost_stl_grid.items()}
 
 # ==================== #
 # GRID SEARCH WRAPPERS #
 # (Single-task)        #
 # ==================== #
 
-GS_STL_RF = GridSearchCV(
-    estimator=STL_RF,
-    param_grid=rf_stl_param_grid,
-    cv=custom_cv,
-    scoring=custom_scorer,
-    refit=True,
-    n_jobs=-1,
-    verbose=1
-)
- 
-GS_STL_EN = GridSearchCV(
-    estimator=STL_EN,
-    param_grid=en_stl_param_grid,
-    cv=custom_cv,
-    scoring=custom_scorer,
-    refit=True,
-    n_jobs=-1,
-    verbose=1
-)
- 
-GS_STL_CB = GridSearchCV(
-    estimator=STL_CB,
-    param_grid=cb_stl_param_grid,
-    cv=custom_cv,
-    scoring=custom_scorer,
-    refit=True,
-    n_jobs=-1,
-    verbose=1
-)
-
-GS_STL_XGB = GridSearchCV(
-    estimator=STL_XGB,
-    param_grid=xgb_stl_param_grid,
-    cv=custom_cv,
-    scoring=custom_scorer,
-    refit=True,
-    n_jobs=-1,
-    verbose=1
-)
+stl_grids = {}
+for outcome in outcomes:
+    stl_grids[(outcome, 'RF')]  = GridSearchCV(estimator=clone(STL_RF_pipe),  param_grid=rf_stl_param_grid, 
+                                                cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, n_jobs=-1, verbose=1)
+    
+    stl_grids[(outcome, 'EN')]  = GridSearchCV(estimator=clone(STL_EN_pipe),  param_grid=en_stl_param_grid, 
+                                                cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, n_jobs=-1, verbose=1)
+    
+    stl_grids[(outcome, 'CB')]  = GridSearchCV(estimator=clone(STL_CB_pipe),  param_grid=cb_stl_param_grid,  
+                                               cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, n_jobs=-1, verbose=1)
+    
+    stl_grids[(outcome, 'XGB')] = GridSearchCV(estimator=clone(STL_XGB_pipe), param_grid=xgb_stl_param_grid, 
+                                               cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, n_jobs=-1, verbose=1)
 
  
 
@@ -409,68 +385,86 @@ GS_STL_XGB = GridSearchCV(
 #       FITTING        #
 # ==================== #
 
+# ========== #
+#    MTL      #
+# ========== #
+
 mtl_models = {
     'MVRF':       GS_MVRF,
     'MTEN':       GS_MTEN,
     'MVCatBoost': GS_MVCatBoost,
-    'MVXGB':      GS_MVXGB,   
+    'MVXGB':      GS_MVXGB,
 }
 
-stl_models = {
-    'STL_RF':  GS_STL_RF,
-    'STL_EN':  GS_STL_EN,
-    'STL_CB':  GS_STL_CB,
-    'STL_XGB': GS_STL_XGB,  
-}
+mtl_results = {}
 
-results = {}
+print('Fitting MTL models...')
+for model_name, gs in mtl_models.items():
+    print(f'Fitting {model_name}...')
+    t0 = time.time()
+    gs.fit(X_global, y_global)
+    elapsed = time.time() - t0
 
+    nrmse = -gs.best_score_
+    mtl_results[model_name] = {
+        'best_params': gs.best_params_,
+        'nrmse': nrmse,
+        'time_min': elapsed / 60
+    }
+    print(f'Done in {elapsed/60:.3f} mins | NRMSE: {nrmse:.4f}')
 
-for group_name, group in [ ('MTL', mtl_models), ('STL', stl_models) ]:
-    print( f'Fitting {group_name} models')
+# ========== #
+#    STL      #
+# ========== #
 
-    for model_name, gs in group.items():
-        print(f'Fitting {model_name}...')
-        t0 = time.time()
-        gs.fit(X_global, y_global)
-        elapsed = time.time() - t0
-        
-        nrmse = -gs.best_score_
+stl_results = {}
 
-        results[model_name] = {
-            'best_params': gs.best_params_,
-            'nrmse': nrmse,
-            'group': group_name,
-            'time_min': elapsed / 60
-        }
-        print (f'Done in {elapsed/60:.3f} mins | NRMSE: {nrmse:.4f}')
+print('Fitting STL models...')
+for (outcome, model_name), gs in stl_grids.items():
+    print(f'Fitting {model_name} on {outcome}...')
+    t0 = time.time()
+    gs.fit(X_global, y_global[outcome])
+    elapsed = time.time() - t0
 
-
+    rmse = -gs.best_score_
+    stl_results[(outcome, model_name)] = {
+        'best_params': gs.best_params_,
+        'rmse': rmse,
+        'time_min': elapsed / 60
+    }
+    print(f'Done in {elapsed/60:.3f} mins | RMSE: {rmse:.4f}')
 
 # ==================== #
 #       RESULTS        #
 # ==================== #
 
+# --- MTL ---
 print(f"{'-'*50}")
-print(f"{'Model':<15} {'Group':<8} {'Mean NRMSE':<15} {'Time (min)':<12}")
+print(f"{'Model':<15} {'NRMSE':<15} {'Time (min)':<12}")
 print(f"{'-'*50}")
 
-for name, res in results.items():
-    print(f"{name:<15} {res['group']:<8} {res['nrmse']:<15.4f} {res['time_min']:<12.3f}")
+for name, res in mtl_results.items():
+    print(f"{name:<15} {res['nrmse']:<15.4f} {res['time_min']:<12.3f}")
 
-best_mtl = min((x for x in results if results[x]['group'] == 'MTL'), 
-                key=lambda x: results[x]['nrmse'])
-best_stl = min((x for x in results if results[x]['group'] == 'STL'), 
-                key=lambda x: results[x]['nrmse'])
-
-print(f"\n→ Best MTL: {best_mtl} (NRMSE={results[best_mtl]['nrmse']:.5f})")
-print(f"→ Best STL: {best_stl} (NRMSE={results[best_stl]['nrmse']:.5f})")
-
-# GridsearchCV object of best MTL and STL models
+best_mtl = min(mtl_results, key=lambda x: mtl_results[x]['nrmse'])
+print(f"\n→ Best MTL: {best_mtl} (NRMSE={mtl_results[best_mtl]['nrmse']:.5f})")
 best_mtl_gs = mtl_models[best_mtl]
-best_stl_gs = stl_models[best_stl]
 
+# --- STL ---
+print(f"\n{'-'*50}")
+print(f"{'Outcome':<12} {'Model':<10} {'RMSE':<15} {'Time (min)':<12}")
+print(f"{'-'*50}")
 
+for (outcome, model_name), res in stl_results.items():
+    print(f"{outcome:<12} {model_name:<10} {res['rmse']:<15.4f} {res['time_min']:<12.3f}")
+
+# miglior modello per ogni outcome
+best_stl_per_outcome = {}
+for outcome in outcomes:
+    best_model = min(['RF', 'EN', 'CB', 'XGB'],
+                     key=lambda m: stl_results[(outcome, m)]['rmse'])
+    best_stl_per_outcome[outcome] = (best_model, stl_grids[(outcome, best_model)])
+    print(f"\n→ Best STL for {outcome}: {best_model} (RMSE={stl_results[(outcome, best_model)]['rmse']:.5f})")
 
 # =========================== #
 #       FINAL COMPARISON      #
@@ -486,31 +480,49 @@ y_dev  = development[outcomes]
 X_test = test[feature_cols]
 y_test = test[outcomes]
 
-# training best models
-best_mtl_gs.best_estimator_.fit(X_dev, y_dev)
-best_stl_gs.best_estimator_.fit(X_dev, y_dev)
+# training best MTL model on development
+mtl_pipe_map = {
+    'MVRF': MVRF_pipe, 'MTEN': MTEN_pipe,
+    'MVCatBoost': MVCatBoost_pipe, 'MVXGB': MVXGB_pipe
+}
 
-# predictions on test set
-y_pred_mtl = best_mtl_gs.best_estimator_.predict(X_test) 
-y_pred_stl = best_stl_gs.best_estimator_.predict(X_test) 
+best_mtl_model = clone(mtl_pipe_map[best_mtl])
+best_mtl_model.set_params(**best_mtl_gs.best_params_)
+best_mtl_model.fit(X_dev, y_dev)
+y_pred_mtl = best_mtl_model.predict(X_test)
 
+# training best STL model per outcome on development
+stl_pipe_map = {
+    'RF': STL_RF_pipe, 'EN': STL_EN_pipe,
+    'CB': STL_CB_pipe, 'XGB': STL_XGB_pipe
+}
+y_pred_stl = np.zeros((len(X_test), len(outcomes)))
+for i, outcome in enumerate(outcomes):
+    best_model_name, best_gs = best_stl_per_outcome[outcome]
+    best_stl_model = clone(stl_pipe_map[best_model_name])
+    best_stl_model.set_params(**best_gs.best_params_)
+    best_stl_model.fit(X_dev, y_dev[outcome])
+    y_pred_stl[:, i] = best_stl_model.predict(X_test)
+
+# RMSE by outcome
 rmse_results = {}
 for i, outcome in enumerate(outcomes):
     rmse_mtl = np.sqrt(np.mean((y_test[outcome].values - y_pred_mtl[:, i])**2))
     rmse_stl = np.sqrt(np.mean((y_test[outcome].values - y_pred_stl[:, i])**2))
     rmse_results[outcome] = {'MTL': rmse_mtl, 'STL': rmse_stl}
 
-
+# ----- Printing -----
 print(f"  FINAL COMPARISON — RMSE by outcome (test set)")
-print(f"{'-'*50}")
-print(f"{'Outcome':<12} {best_mtl:<15} {best_stl:<15} {'Best':<10}")
-print(f"{'-'*50}")
+print(f"{'-'*60}")
+print(f"{'Outcome':<12} {best_mtl:<15} {'Best STL':<20} {'Best':<10}")
+print(f"{'-'*60}")
 
 for outcome, res in rmse_results.items():
-    winner = best_mtl if res['MTL'] < res['STL'] else best_stl
-    print(f"{outcome:<12} {res['MTL']:<15.4f} {res['STL']:<15.4f} {winner:<10}")
+    best_model_name = best_stl_per_outcome[outcome][0]
+    winner = best_mtl if res['MTL'] < res['STL'] else f"{best_model_name}"
+    print(f"{outcome:<12} {res['MTL']:<15.4f} {res['STL']:<20.4f} {winner:<10}")
 
 mean_rmse_mtl = np.mean([v['MTL'] for v in rmse_results.values()])
 mean_rmse_stl = np.mean([v['STL'] for v in rmse_results.values()])
-print(f"{'-'*50}")
-print(f"{'Mean':<12} {mean_rmse_mtl:<15.4f} {mean_rmse_stl:<15.4f}")
+print(f"{'-'*60}")
+print(f"{'Mean':<12} {mean_rmse_mtl:<15.4f} {mean_rmse_stl:<20.4f}")
