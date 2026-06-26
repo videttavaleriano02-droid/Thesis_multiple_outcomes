@@ -6,6 +6,8 @@
 import pandas as pd
 import numpy as np
 import os
+import joblib
+
 
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
@@ -160,7 +162,7 @@ catboost_stl_grid = {
 xgboost_stl_grid = {
     'n_estimators': [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
-    'max_depth': [3, 4, 6],
+    'max_depth': [5, 10, 15],
     'reg_lambda': [1, 3, 5, 10, 20],
     'subsample':     [0.6, 0.8, 1.0],     # obs fraction for each tree
     'colsample_bytree': [0.11, 0.33, 0.5],  # feature fraction for each tree
@@ -526,3 +528,97 @@ mean_rmse_mtl = np.mean([v['MTL'] for v in rmse_results.values()])
 mean_rmse_stl = np.mean([v['STL'] for v in rmse_results.values()])
 print(f"{'-'*60}")
 print(f"{'Mean':<12} {mean_rmse_mtl:<15.4f} {mean_rmse_stl:<20.4f}")
+
+# ========================== #
+os.makedirs("results", exist_ok=True)
+
+# ========================== #
+#       SAVING CV RESULTS    #
+# ========================== #
+
+# --- MTL: cv_results_ for each model ---
+
+mtl_cv_dfs = []
+for name, gs in mtl_models.items():
+    df = pd.DataFrame(gs.cv_results_)
+    df.insert(0, 'model', name) 
+    mtl_cv_dfs.append(df)
+
+pd.concat(mtl_cv_dfs, axis=0).to_csv("results/cv_results_mtl.csv", index=False)
+
+# --- MTL: best params + score by model
+best_params_rows = []
+for name, res in mtl_results.items():
+    row = {'model': name, 'nrmse_cv': res['nrmse'], 'time_min': res['time_min']}
+    row.update(res['best_params'])  # hyperparameters are columns
+    best_params_rows.append(row)
+
+pd.DataFrame(best_params_rows).to_csv("results/best_params_mtl.csv", index=False)
+
+# --- STL: cv_results_ for each (outcome, model) ---
+stl_cv_dfs = []
+for (outcome, model_name), gs in stl_grids.items():
+    df = pd.DataFrame(gs.cv_results_)
+    df.insert(0, 'outcome', outcome)
+    df.insert(1, 'model', model_name)
+    stl_cv_dfs.append(df)
+
+pd.concat(stl_cv_dfs, axis=0).to_csv("results/cv_results_stl.csv", index=False)
+
+# --- STL: best params + score by (outcome, model) ---
+stl_best_rows = []
+for (outcome, model_name), res in stl_results.items():
+    row = {'outcome': outcome, 'model': model_name,
+           'rmse_cv': res['rmse'], 'time_min': res['time_min']}
+    row.update(res['best_params'])
+    stl_best_rows.append(row)
+
+pd.DataFrame(stl_best_rows).to_csv("results/best_params_stl.csv", index=False)
+
+
+# ================================ #
+#      SAVING FINAL RESULTS        #
+# ================================ #
+
+# --- Predictions on test set (MTL vs STL) --- #
+
+pred_df = y_test.copy().reset_index(drop=True)
+pred_df.columns = [f"{c}_true" for c in outcomes]  
+
+for i, outcome in enumerate(outcomes):
+    pred_df[f"{outcome}_pred_mtl"] = y_pred_mtl[:, i]
+    pred_df[f"{outcome}_pred_stl"] = y_pred_stl[:, i]
+
+pred_df.to_csv("results/predictions_test.csv", index=False)
+
+# --- RMSE by outcome (MTL vs STL) ---
+rmse_rows = []
+for outcome, res in rmse_results.items():
+    best_stl_name = best_stl_per_outcome[outcome][0]
+    rmse_rows.append({
+        'outcome':       outcome,
+        f'rmse_{best_mtl}': res['MTL'],  
+        f'rmse_{best_stl_name}': res['STL'],
+        'winner':        best_mtl if res['MTL'] < res['STL'] else best_stl_name
+    })
+
+pd.DataFrame(rmse_rows).to_csv("results/rmse_comparison.csv", index=False)
+
+# residuals --
+resid_df = y_test.copy().reset_index(drop=True)
+resid_df.columns = [f"{c}_true" for c in outcomes]
+
+for i, outcome in enumerate(outcomes):
+    resid_df[f"{outcome}_resid_mtl"] = y_test[outcome].values - y_pred_mtl[:, i]
+    resid_df[f"{outcome}_resid_stl"] = y_test[outcome].values - y_pred_stl[:, i]
+
+resid_df.to_csv("results/residuals_test.csv", index=False)
+
+# ------ Saving models ------ #
+joblib.dump(best_mtl_model, "results/best_mtl_model.pkl")
+
+stl_models_to_save = {
+    outcome: best_stl_per_outcome[outcome][1].best_estimator_
+    for outcome in outcomes
+}
+joblib.dump(stl_models_to_save, "results/best_stl_models.pkl")
