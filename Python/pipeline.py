@@ -38,13 +38,38 @@ def normalized_rmse(y_true, y_pred):
 
 custom_scorer = make_scorer(normalized_rmse, greater_is_better=False)
 
-# Set random seed for reproducibility
-seed = 2727
-np.random.seed(seed)
+def print_fold_errors(gs, model_label, n_folds=5, mtl=True):
+    """
+    Print fold errors
+    gs        : GridSearchCV object
+    model_label: String, model
+    mtl       : if TRUE uses NRMSE, else RMSE
+    """
+    idx = gs.best_index_
+    cv_res = gs.cv_results_
+    metric = "NRMSE" if mtl else "RMSE"
+
+    print(f"\n  Fold-level errors for best {model_label}:")
+    print(f"  {'Fold':<8} {'Train ' + metric:<18} {'Val ' + metric:<18}")
+    print(f"  {'-'*44}")
+
+    for fold in range(n_folds):
+        train_score = -cv_res[f'split{fold}_train_score'][idx]
+        val_score   = -cv_res[f'split{fold}_test_score'][idx]
+        print(f"  Fold {fold+1:<3}  {train_score:<18.4f} {val_score:<18.4f}")
+
+    mean_train = -cv_res['mean_train_score'][idx]
+    mean_val   = -cv_res['mean_test_score'][idx]
+    print(f"  {'Mean':<8} {mean_train:<18.4f} {mean_val:<18.4f}")
 
 # ============================== #
 #        Importing folds         #
 # ============================== #
+
+# Set random seed for reproducibility
+seed = 2727
+np.random.seed(seed)
+
 os.chdir("/Users/valerianovidetta/Desktop/Tesi/Dataset")
 
 outcomes = ["mbi_t1", "mrs_t1", "tct_t1"]
@@ -57,7 +82,6 @@ train_files = ['folds_synthetic/train_syn_fold1.csv','folds_synthetic/train_syn_
 val_files = ['folds_imputed/val_fold1.csv','folds_imputed/val_fold2.csv',
              'folds_imputed/val_fold3.csv','folds_imputed/val_fold4.csv',
              'folds_imputed/val_fold5.csv']
-
 
 X_chunks = []
 y_chunks = []
@@ -86,7 +110,6 @@ for t_path, v_path in zip(train_files, val_files):
     # go to next fold
     current_idx += (len_tr + len_va)
 
-
 # Creazione dei dataset globali finali ordinati per fold
 X_global = pd.concat(X_chunks, axis=0).reset_index(drop=True)
 y_global = pd.concat(y_chunks, axis=0).reset_index(drop=True)
@@ -114,8 +137,8 @@ catboost_grid = {
     'iterations': [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
     'depth': [3, 6, 9],
-    'l2_leaf_reg': [1, 5, 10, 20],
-    'loss_function': ['MultiRMSE']
+    'l2_leaf_reg':   [0.5, 1, 5, 10],
+    'min_data_in_leaf': [2, 5, 10, 20]
 }
 
 # --- XGBoost MTL ---
@@ -123,10 +146,10 @@ xgboost_grid = {
     'n_estimators':  [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
     'max_depth':     [3, 6, 9],
-    'reg_lambda':    [1, 5, 10, 20],       # L2: penalises weights for big leaves
+    'reg_lambda':    [0.5, 1, 5, 10],       # L2: penalises weights for big leaves
     'subsample':     [0.7, 1.0],      # obs fraction for each tree
     'colsample_bytree': [0.11, 0.33, 0.5], # feature fraction for each tree
-    'reg_alpha':     [0, 0.5, 1.0]  
+    'reg_alpha':     [0, 0.5, 1.0]  # l1 penalization
 }
 
 # --- ElasticNet MTL ---
@@ -153,8 +176,8 @@ catboost_stl_grid = {
     'iterations': [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
     'depth': [3, 6, 9],
-    'l2_leaf_reg': [1, 5, 10, 20],
-    'loss_function': ['RMSE']
+    'l2_leaf_reg':   [0.5, 1, 5, 10],
+    'min_data_in_leaf': [2, 5, 10, 20]
 }
 
 # --- XGBoost STL ---
@@ -162,7 +185,7 @@ xgboost_stl_grid = {
     'n_estimators': [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
     'max_depth': [3, 6, 9],
-    'reg_lambda': [1, 5, 10, 20],
+    'reg_lambda':   [0.5, 1, 5, 10],
     'subsample':     [0.7, 1.0],      # obs fraction for each tree
     'colsample_bytree': [0.11, 0.33, 0.5], # feature fraction for each tree
     'reg_alpha':     [0, 0.5, 1.0]  
@@ -268,7 +291,8 @@ GS_MVRF = GridSearchCV(
     scoring=custom_scorer,
     refit=True,
     n_jobs=-1,
-    verbose=1
+    verbose=1,
+    return_train_score=True
 )
  
 GS_MTEN = GridSearchCV(
@@ -278,7 +302,8 @@ GS_MTEN = GridSearchCV(
     scoring=custom_scorer,
     refit=True,
     n_jobs=-1,
-    verbose=1
+    verbose=1,
+    return_train_score=True
 )
  
 GS_MVCatBoost = GridSearchCV(
@@ -288,7 +313,8 @@ GS_MVCatBoost = GridSearchCV(
     scoring=custom_scorer,
     refit=True,
     n_jobs=-1,
-    verbose=1
+    verbose=1,
+    return_train_score=True
 )
 
 GS_MVXGB = GridSearchCV(
@@ -298,7 +324,8 @@ GS_MVXGB = GridSearchCV(
     scoring=custom_scorer,
     refit=True,
     n_jobs=-1,
-    verbose=1
+    verbose=1,
+    return_train_score=True
 )
 
 # =========== #
@@ -370,16 +397,20 @@ xgb_stl_param_grid = {f'STL_XGB__regressor__{k}': v for k, v in xgboost_stl_grid
 stl_grids = {}
 for outcome in outcomes:
     stl_grids[(outcome, 'RF')]  = GridSearchCV(estimator=clone(STL_RF_pipe),  param_grid=rf_stl_param_grid, 
-                                                cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, n_jobs=-1, verbose=1)
+                                                cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, 
+                                                n_jobs=-1, verbose=1, return_train_score=True)
     
     stl_grids[(outcome, 'EN')]  = GridSearchCV(estimator=clone(STL_EN_pipe),  param_grid=en_stl_param_grid, 
-                                                cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, n_jobs=-1, verbose=1)
+                                                cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, 
+                                                n_jobs=-1, verbose=1, return_train_score=True)
     
     stl_grids[(outcome, 'CB')]  = GridSearchCV(estimator=clone(STL_CB_pipe),  param_grid=cb_stl_param_grid,  
-                                               cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, n_jobs=-1, verbose=1)
+                                               cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, 
+                                               n_jobs=-1, verbose=1, return_train_score=True)
     
     stl_grids[(outcome, 'XGB')] = GridSearchCV(estimator=clone(STL_XGB_pipe), param_grid=xgb_stl_param_grid, 
-                                               cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, n_jobs=-1, verbose=1)
+                                               cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, 
+                                               n_jobs=-1, verbose=1, return_train_score=True)
 
  
 
@@ -452,6 +483,9 @@ best_mtl = min(mtl_results, key=lambda x: mtl_results[x]['nrmse'])
 print(f"\n→ Best MTL: {best_mtl} (NRMSE={mtl_results[best_mtl]['nrmse']:.5f})")
 best_mtl_gs = mtl_models[best_mtl]
 
+print_fold_errors(best_mtl_gs, model_label=best_mtl, mtl=True)
+
+
 # --- STL ---
 print(f"\n{'-'*50}")
 print(f"{'Outcome':<12} {'Model':<10} {'RMSE':<15} {'Time (min)':<12}")
@@ -467,6 +501,9 @@ for outcome in outcomes:
                      key=lambda m: stl_results[(outcome, m)]['rmse'])
     best_stl_per_outcome[outcome] = (best_model, stl_grids[(outcome, best_model)])
     print(f"\n→ Best STL for {outcome}: {best_model} (RMSE={stl_results[(outcome, best_model)]['rmse']:.5f})")
+
+    print_fold_errors(stl_grids[(outcome, best_model)], 
+                      model_label=f"{outcome} - {best_model}", mtl=False)
 
 # =========================== #
 #       FINAL COMPARISON      #
