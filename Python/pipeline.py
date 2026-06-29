@@ -103,8 +103,8 @@ y_global = pd.concat(y_chunks, axis=0).reset_index(drop=True)
 # --- Random Forest MTL ---
 rf_grid = {
     'n_estimators': [200, 500, 1000],
-    'max_depth': [5, 10, 15],
-    'min_samples_split': [10, 20],
+    'max_depth': [3, 6, 9, None],
+    'min_samples_split': [10, 20, 50],
     'min_samples_leaf': [2, 5, 10, 20],
     'max_features': ['sqrt', 0.33, 0.5]
 }
@@ -113,25 +113,26 @@ rf_grid = {
 catboost_grid = {
     'iterations': [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
-    'depth': [5, 10, 15],
-    'l2_leaf_reg': [1, 3, 5, 10, 20],
+    'depth': [3, 6, 9],
+    'l2_leaf_reg': [1, 5, 10, 20],
     'loss_function': ['MultiRMSE']
 }
 
 # --- XGBoost MTL ---
-#     'reg_alpha':     [0, 0.1, 0.5, 1.0],  # L1: weights of leaves pushed towards zero
 xgboost_grid = {
     'n_estimators':  [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
-    'max_depth':     [5, 10, 15],
+    'max_depth':     [3, 6, 9],
     'reg_lambda':    [1, 5, 10, 20],       # L2: penalises weights for big leaves
-    'subsample':     [0.6, 0.8, 1.0],      # obs fraction for each tree
-    'colsample_bytree': [0.11, 0.33, 0.5],   # feature fraction for each tree
+    'subsample':     [0.7, 1.0],      # obs fraction for each tree
+    'colsample_bytree': [0.11, 0.33, 0.5], # feature fraction for each tree
+    'reg_alpha':     [0, 0.5, 1.0]  
 }
+
 # --- ElasticNet MTL ---
-elasticnet_grid = {
-    'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 10, 100],
-    'l1_ratio': [0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0]
+elasticnet_grid =  {
+    'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 5, 10, 50, 100],
+    'l1_ratio': [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0]
 }
 
 # =========== #
@@ -141,8 +142,8 @@ elasticnet_grid = {
 # --- Random Forest STL ---
 rf_stl_grid = {
     'n_estimators': [200, 500, 1000],
-    'max_depth': [5, 10, 15],
-    'min_samples_split': [10, 20],
+    'max_depth': [3, 6, 9, None],
+    'min_samples_split': [10, 20, 50],
     'min_samples_leaf': [2, 5, 10, 20],
     'max_features': ['sqrt', 0.33, 0.5]
 }
@@ -151,27 +152,26 @@ rf_stl_grid = {
 catboost_stl_grid = {
     'iterations': [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
-    'depth': [5, 10, 15],
-    'l2_leaf_reg': [1, 3, 5, 10, 20],
+    'depth': [3, 6, 9],
+    'l2_leaf_reg': [1, 5, 10, 20],
     'loss_function': ['RMSE']
 }
 
 # --- XGBoost STL ---
-#     'reg_alpha':     [0, 0.1, 0.5, 1.0],  # L1: weights of leaves pushed towards zero
-
 xgboost_stl_grid = {
     'n_estimators': [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
-    'max_depth': [5, 10, 15],
-    'reg_lambda': [1, 3, 5, 10, 20],
-    'subsample':     [0.6, 0.8, 1.0],     # obs fraction for each tree
-    'colsample_bytree': [0.11, 0.33, 0.5],  # feature fraction for each tree
+    'max_depth': [3, 6, 9],
+    'reg_lambda': [1, 5, 10, 20],
+    'subsample':     [0.7, 1.0],      # obs fraction for each tree
+    'colsample_bytree': [0.11, 0.33, 0.5], # feature fraction for each tree
+    'reg_alpha':     [0, 0.5, 1.0]  
 }
 
 # --- ElasticNet STL ---
 elasticnet_stl_grid = {
-    'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 10, 100],
-    'l1_ratio': [0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0]
+    'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 5, 10, 50, 100],
+    'l1_ratio': [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0]
 }
 
 
