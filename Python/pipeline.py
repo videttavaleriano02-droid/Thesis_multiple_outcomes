@@ -119,11 +119,7 @@ y_global = pd.concat(y_chunks, axis=0).reset_index(drop=True)
 #       GRIDS          #
 # ==================== #
 
-# ========== #
-# MULTI-TASK #
-# ========== #
-
-# --- Random Forest MTL ---
+# --- Random Forest ---
 rf_grid = {
     'n_estimators': [200, 500, 1000],
     'max_depth': [3, 6, 9, None],
@@ -132,7 +128,7 @@ rf_grid = {
     'max_features': ['sqrt', 0.33, 0.5]
 }
 
-# --- CatBoost MTL ---
+# --- CatBoost ---
 catboost_grid = {
     'iterations': [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
@@ -141,7 +137,7 @@ catboost_grid = {
     'min_data_in_leaf': [2, 5, 10, 20]
 }
 
-# --- XGBoost MTL ---
+# --- XGBoost ---
 xgboost_grid = {
     'n_estimators':  [200, 500, 1000],
     'learning_rate': [0.01, 0.05, 0.1],
@@ -152,50 +148,12 @@ xgboost_grid = {
     'reg_alpha':     [0, 0.5, 1.0]  # l1 penalization
 }
 
-# --- ElasticNet MTL ---
+# --- ElasticNet ---
 elasticnet_grid =  {
     'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 5, 10, 50, 100],
     'l1_ratio': [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0]
 }
 
-# =========== #
-# SINGLE-TASK #
-# =========== #
-
-# --- Random Forest STL ---
-rf_stl_grid = {
-    'n_estimators': [200, 500, 1000],
-    'max_depth': [3, 6, 9, None],
-    'min_samples_split': [10, 20, 50],
-    'min_samples_leaf': [2, 5, 10, 20],
-    'max_features': ['sqrt', 0.33, 0.5]
-}
-
-# --- CatBoost STL ---
-catboost_stl_grid = {
-    'iterations': [200, 500, 1000],
-    'learning_rate': [0.01, 0.05, 0.1],
-    'depth': [3, 6, 9],
-    'l2_leaf_reg':   [0.5, 1, 5, 10],
-    'min_data_in_leaf': [2, 5, 10, 20]
-}
-
-# --- XGBoost STL ---
-xgboost_stl_grid = {
-    'n_estimators': [200, 500, 1000],
-    'learning_rate': [0.01, 0.05, 0.1],
-    'max_depth': [3, 6, 9],
-    'reg_lambda':   [0.5, 1, 5, 10],
-    'subsample':     [0.7, 1.0],      # obs fraction for each tree
-    'colsample_bytree': [0.11, 0.33, 0.5], # feature fraction for each tree
-    'reg_alpha':     [0, 0.5, 1.0]  
-}
-
-# --- ElasticNet STL ---
-elasticnet_stl_grid = {
-    'alpha': [0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 5, 10, 50, 100],
-    'l1_ratio': [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0]
-}
 
 
 # ==================== #
@@ -280,8 +238,7 @@ MVXGB_pipe = Pipeline( [
 
 rf_mtl_param_grid  = {f'MVRF__regressor__{k}': v for k, v in rf_grid.items()}
 en_mtl_param_grid  = {f'MTEN__regressor__{k}': v for k, v in elasticnet_grid.items()}
-cb_mtl_param_grid  = {f'MVCatBoost__regressor__{k}': v for k, v in catboost_grid.items()
-                      if k != 'loss_function'}
+cb_mtl_param_grid  = {f'MVCatBoost__regressor__{k}': v for k, v in catboost_grid.items()}
 xgb_mtl_param_grid = {f'MVXGB__regressor__{k}': v for k, v in xgboost_grid.items()}
 
 GS_MVRF = GridSearchCV(
@@ -383,11 +340,10 @@ STL_XGB_pipe = Pipeline([
     )
 ])
 
-rf_stl_param_grid  = {f'STL_RF__regressor__{k}': v for k, v in rf_stl_grid.items()}
-en_stl_param_grid  = {f'STL_EN__regressor__{k}': v for k, v in elasticnet_stl_grid.items()}
-cb_stl_param_grid  = {f'STL_CB__regressor__{k}': v for k, v in catboost_stl_grid.items()
-                      if k != 'loss_function'}
-xgb_stl_param_grid = {f'STL_XGB__regressor__{k}': v for k, v in xgboost_stl_grid.items()}
+rf_stl_param_grid  = {f'STL_RF__regressor__{k}': v for k, v in rf_grid.items()}
+en_stl_param_grid  = {f'STL_EN__regressor__{k}': v for k, v in elasticnet_grid.items()}
+cb_stl_param_grid  = {f'STL_CB__regressor__{k}': v for k, v in catboost_grid.items()}
+xgb_stl_param_grid = {f'STL_XGB__regressor__{k}': v for k, v in xgboost_grid.items()}
 
 # ==================== #
 # GRID SEARCH WRAPPERS #
