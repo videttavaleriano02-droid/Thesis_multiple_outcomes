@@ -145,7 +145,7 @@ xgboost_grid = {
     'reg_lambda':    [0.5, 1, 5, 10],       # L2: penalises weights for big leaves
     'subsample':     [0.7, 1.0],      # obs fraction for each tree
     'colsample_bytree': [0.11, 0.33, 0.5], # feature fraction for each tree
-    'reg_alpha':     [0, 0.5, 1.0]  # l1 penalization
+    'reg_alpha':     [0, 0.5]  # l1 penalization
 }
 
 # --- ElasticNet ---
