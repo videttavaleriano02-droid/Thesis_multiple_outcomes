@@ -76,12 +76,12 @@ outcomes = ["mbi_t1", "mrs_t1", "tct_t1"]
 
 
 train_files = ['folds_synthetic/train_syn_fold1.csv','folds_synthetic/train_syn_fold2.csv',
-               'folds_synthetic/train_syn_fold3.csv','folds_synthetic/train_syn_fold4.csv',
-               'folds_synthetic/train_syn_fold5.csv']
+              'folds_synthetic/train_syn_fold3.csv','folds_synthetic/train_syn_fold4.csv',
+              'folds_synthetic/train_syn_fold5.csv']
 
 val_files = ['folds_imputed/val_fold1.csv','folds_imputed/val_fold2.csv',
-             'folds_imputed/val_fold3.csv','folds_imputed/val_fold4.csv',
-             'folds_imputed/val_fold5.csv']
+            'folds_imputed/val_fold3.csv','folds_imputed/val_fold4.csv',
+            'folds_imputed/val_fold5.csv']
 
 X_chunks = []
 y_chunks = []
@@ -178,7 +178,7 @@ MVRF_pipe = Pipeline([
         regressor=RandomForestRegressor(random_state=seed),
         transformer=StandardScaler()
     )
-  )
+)
 ])
 
 # -----------------
@@ -206,7 +206,7 @@ MVCatBoost_pipe = Pipeline( [
     ),
     transformer=StandardScaler()
     ) 
-  ) 
+) 
 ])
 
 # -----------------
@@ -223,15 +223,14 @@ MVXGB_pipe = Pipeline( [
     ),
     transformer=StandardScaler()
     ) 
-  ) 
+) 
 ])
-
 
 # ==================== #
 # GRID SEARCH WRAPPERS #
 # (Multi-task)         #
 # ==================== #
- 
+
 # Prefix: models are wrapped in TransformedTargetRegressor.
 # GridSearchCV sees the params as: regressor__<param>
 # Example: RandomForestRegressor(n_estimators=...) → 'regressor__n_estimators'
@@ -251,7 +250,7 @@ GS_MVRF = GridSearchCV(
     verbose=1,
     return_train_score=True
 )
- 
+
 GS_MTEN = GridSearchCV(
     estimator=MTEN_pipe,
     param_grid=en_mtl_param_grid,
@@ -262,7 +261,7 @@ GS_MTEN = GridSearchCV(
     verbose=1,
     return_train_score=True
 )
- 
+
 GS_MVCatBoost = GridSearchCV(
     estimator=MVCatBoost_pipe,
     param_grid=cb_mtl_param_grid,
@@ -288,7 +287,7 @@ GS_MVXGB = GridSearchCV(
 # =========== #
 # SINGLE-TASK #
 # =========== #
- 
+
 #Each stl model is trained independently on each target.
 # Example RF STL: 
 #   rf_mbi fits on y['mbi_t1'] -> split based only on mbi_t1
@@ -296,10 +295,9 @@ GS_MVXGB = GridSearchCV(
 #   rf_tct fits on y['tct_t1'] -> split based only on tct_t1
 
 # Prefix: estimator__regressor__<param>
-#   estimator__       -> MultiOutputRegressor
 #   regressor__       -> TransformedTargetRegressor
 #   <param>           -> base model parameter
- 
+
 # --- Random Forest STL ---
 STL_RF_pipe = Pipeline([
     ('scaler_x', StandardScaler()),
@@ -361,14 +359,12 @@ for outcome in outcomes:
                                                 n_jobs=-1, verbose=1, return_train_score=True)
     
     stl_grids[(outcome, 'CB')]  = GridSearchCV(estimator=clone(STL_CB_pipe),  param_grid=cb_stl_param_grid,  
-                                               cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, 
-                                               n_jobs=-1, verbose=1, return_train_score=True)
+                                              cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, 
+                                              n_jobs=-1, verbose=1, return_train_score=True)
     
     stl_grids[(outcome, 'XGB')] = GridSearchCV(estimator=clone(STL_XGB_pipe), param_grid=xgb_stl_param_grid, 
-                                               cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, 
-                                               n_jobs=-1, verbose=1, return_train_score=True)
-
- 
+                                              cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, 
+                                              n_jobs=-1, verbose=1, return_train_score=True)
 
 # ==================== #
 #       FITTING        #
@@ -450,16 +446,16 @@ print(f"{'-'*50}")
 for (outcome, model_name), res in stl_results.items():
     print(f"{outcome:<12} {model_name:<10} {res['rmse']:<15.4f} {res['time_min']:<12.3f}")
 
-# miglior modello per ogni outcome
+# best model for each outcome
 best_stl_per_outcome = {}
 for outcome in outcomes:
     best_model = min(['RF', 'EN', 'CB', 'XGB'],
-                     key=lambda m: stl_results[(outcome, m)]['rmse'])
+                    key=lambda m: stl_results[(outcome, m)]['rmse'])
     best_stl_per_outcome[outcome] = (best_model, stl_grids[(outcome, best_model)])
     print(f"\n→ Best STL for {outcome}: {best_model} (RMSE={stl_results[(outcome, best_model)]['rmse']:.5f})")
 
     print_fold_errors(stl_grids[(outcome, best_model)], 
-                      model_label=f"{outcome} - {best_model}", mtl=False)
+                    model_label=f"{outcome} - {best_model}", mtl=False)
 
 # =========================== #
 #       FINAL COMPARISON      #
@@ -523,11 +519,10 @@ print(f"{'-'*60}")
 print(f"{'Mean':<12} {mean_rmse_mtl:<15.4f} {mean_rmse_stl:<20.4f}")
 
 # ========================== #
-os.makedirs("results", exist_ok=True)
-
-# ========================== #
 #       SAVING CV RESULTS    #
-# ========================== #
+# ========================== # 
+
+os.makedirs("results", exist_ok=True)
 
 # --- MTL: cv_results_ for each model ---
 
@@ -562,18 +557,17 @@ pd.concat(stl_cv_dfs, axis=0).to_csv("results/cv_results_stl.csv", index=False)
 stl_best_rows = []
 for (outcome, model_name), res in stl_results.items():
     row = {'outcome': outcome, 'model': model_name,
-           'rmse_cv': res['rmse'], 'time_min': res['time_min']}
+        'rmse_cv': res['rmse'], 'time_min': res['time_min']}
     row.update(res['best_params'])
     stl_best_rows.append(row)
 
 pd.DataFrame(stl_best_rows).to_csv("results/best_params_stl.csv", index=False)
 
-
 # ================================ #
 #      SAVING FINAL RESULTS        #
 # ================================ #
 
-# --- Predictions on test set (MTL vs STL) --- #
+# --- Predictions on test set (MTL vs STL) --- 
 
 pred_df = y_test.copy().reset_index(drop=True)
 pred_df.columns = [f"{c}_true" for c in outcomes]  
