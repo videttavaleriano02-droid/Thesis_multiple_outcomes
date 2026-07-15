@@ -89,7 +89,7 @@ def unwrap_pipeline(pipeline):
     scaler = pipeline.named_steps["scaler_x"]
     step_name = [n for n in pipeline.named_steps if n != "scaler_x"][0]
     ttr = pipeline.named_steps[step_name]
-    regressor = ttr.regressor_  # regressor interno già fittato
+    regressor = ttr.regressor_  
     model_type = type(regressor).__name__
     return regressor, scaler, model_type
 
