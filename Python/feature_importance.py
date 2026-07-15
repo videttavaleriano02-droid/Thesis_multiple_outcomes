@@ -40,14 +40,14 @@ outcomes = ["mbi_t1", "mrs_t1", "tct_t1"]
 SEED = 2727
 np.random.seed(SEED)
 
-N_BACKGROUND = 200   # dimension of the background dataset for SHAP (subset of development set)
-TOP_K = 10            # How many features to consider for Jaccard similarity between MTL and STL top-K
+n_background = 200   # dimension of the background dataset for SHAP (subset of development set)
+top_K = 10            # How many features to consider for Jaccard similarity between MTL and STL top-K
 
-COLOR_MTL = "#2F5D50"  
-COLOR_STL = "#A3C9A8"
+color_MTL = "#2F5D50"  
+color_STL = "#A3C9A8"
 
-OUT_DIR = "results/shap"
-os.makedirs(OUT_DIR, exist_ok=True)
+out_dir = "results/shap"
+os.makedirs(out_dir, exist_ok=True)
 
 # ==================== #
 #     LOAD DATA        #
@@ -151,7 +151,7 @@ def compute_shap(pipeline, X_background, X_explain, is_mtl):
 #   COMPUTE SHAP: MTL  #
 # ==================== #
 
-X_background = X_dev.sample(n=min(N_BACKGROUND, len(X_dev)), random_state=SEED)
+X_background = X_dev.sample(n=min(n_background, len(X_dev)), random_state=SEED)
 
 print("\n Computing SHAP for MTL")
 sv_mtl_all, mtl_type = compute_shap(best_mtl_model, X_background, X_test, is_mtl=True)
@@ -208,17 +208,17 @@ for i, outcome in enumerate(outcomes):
         [imp_mtl[f] for f in feature_cols],
         [imp_stl[f] for f in feature_cols],
     )
-    top_mtl = set(imp_mtl.head(TOP_K).index)
-    top_stl = set(imp_stl.head(TOP_K).index)
+    top_mtl = set(imp_mtl.head(top_K).index)
+    top_stl = set(imp_stl.head(top_K).index)
     jaccard = len(top_mtl & top_stl) / len(top_mtl | top_stl)
 
     agreement_rows.append({
         "outcome": outcome,
         "spearman_rho": rho,
         "spearman_pval": pval,
-        f"jaccard_top{TOP_K}": jaccard,
-        "top_features_mtl": ", ".join(imp_mtl.head(TOP_K).index),
-        "top_features_stl": ", ".join(imp_stl.head(TOP_K).index),
+        f"jaccard_top{top_K}": jaccard,
+        "top_features_mtl": ", ".join(imp_mtl.head(top_K).index),
+        "top_features_stl": ", ".join(imp_stl.head(top_K).index),
     })
 
     # --- beeswarm plots ---
@@ -230,11 +230,11 @@ for i, outcome in enumerate(outcomes):
         shap.summary_plot(sv_arr, X_test[feature_cols], show=False, max_display=15)
         plt.title(f"{outcome} — {label.upper()} ({model_name})")
         plt.tight_layout()
-        plt.savefig(os.path.join(OUT_DIR, f"beeswarm_{outcome}_{label}.png"), dpi=150)
+        plt.savefig(os.path.join(out_dir, f"beeswarm_{outcome}_{label}.png"), dpi=150)
         plt.close()
 
     # --- Comparative bar-plot top-K ---
-    top_union = list(dict.fromkeys(list(imp_mtl.head(TOP_K).index) + list(imp_stl.head(TOP_K).index)))
+    top_union = list(dict.fromkeys(list(imp_mtl.head(top_K).index) + list(imp_stl.head(top_K).index)))
     comp = pd.DataFrame({
         "MTL": [imp_mtl.get(f, 0) for f in top_union],
         "STL": [imp_stl.get(f, 0) for f in top_union],
@@ -242,26 +242,26 @@ for i, outcome in enumerate(outcomes):
 
     fig, ax = plt.subplots(figsize=(7, 0.4 * len(top_union) + 1))
     y_pos = np.arange(len(top_union))
-    ax.barh(y_pos - 0.2, comp["MTL"], height=0.4, label=f"MTL ({mtl_type})", color=COLOR_MTL)
-    ax.barh(y_pos + 0.2, comp["STL"], height=0.4, label=f"STL ({stl_types[outcome]})", color=COLOR_STL)
+    ax.barh(y_pos - 0.2, comp["MTL"], height=0.4, label=f"MTL ({mtl_type})", color=color_MTL)
+    ax.barh(y_pos + 0.2, comp["STL"], height=0.4, label=f"STL ({stl_types[outcome]})", color=color_STL)
     ax.set_yticks(y_pos)
     ax.set_yticklabels(comp.index)
     ax.set_xlabel("mean |SHAP value|")
     ax.set_title(f"{outcome} — Feature importance: MTL vs STL")
     ax.legend()
     plt.tight_layout()
-    plt.savefig(os.path.join(OUT_DIR, f"barplot_{outcome}_comparison.png"), dpi=150)
+    plt.savefig(os.path.join(out_dir, f"barplot_{outcome}_comparison.png"), dpi=150)
     plt.close()
 
 # ==================== #
 #      SAVE CSV        #
 # ==================== #
 
-pd.DataFrame(rows).to_csv(os.path.join(OUT_DIR, "feature_importance_comparison.csv"), index=False)
+pd.DataFrame(rows).to_csv(os.path.join(out_dir, "feature_importance_comparison.csv"), index=False)
 agreement_df = pd.DataFrame(agreement_rows)
-agreement_df.to_csv(os.path.join(OUT_DIR, "agreement_metrics.csv"), index=False)
+agreement_df.to_csv(os.path.join(out_dir, "agreement_metrics.csv"), index=False)
 
 print("\n=== MTL Vs STL concordance by outcome ===")
-print(agreement_df[["outcome", "spearman_rho", f"jaccard_top{TOP_K}"]].to_string(index=False))
-print(f"\nOutput saved in: {OUT_DIR}/")
+print(agreement_df[["outcome", "spearman_rho", f"jaccard_top{top_K}"]].to_string(index=False))
+print(f"\nOutput saved in: {out_dir}/")
 
