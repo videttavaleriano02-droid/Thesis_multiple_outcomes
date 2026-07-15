@@ -1,12 +1,15 @@
 catboost==1.2.10
+cloudpickle==3.1.2
 contourpy==1.3.3
 cycler==0.12.1
 fonttools==4.63.0
 graphviz==0.21
 joblib==1.5.3
 kiwisolver==1.5.0
+llvmlite==0.48.0
 matplotlib==3.10.9
 narwhals==2.22.0
+numba==0.66.0
 numpy==2.4.6
 packaging==26.2
 pandas==3.0.3
@@ -16,6 +19,9 @@ pyparsing==3.3.2
 python-dateutil==2.9.0.post0
 scikit-learn==1.9.0
 scipy==1.17.1
+shap==0.52.0
 six==1.17.0
+slicer==0.0.8
 threadpoolctl==3.6.0
+tqdm==4.68.4
 xgboost==3.3.0
