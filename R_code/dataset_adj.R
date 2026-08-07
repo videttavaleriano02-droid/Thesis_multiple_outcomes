@@ -32,6 +32,12 @@ raw_data$totale_mmse_t1_dimissione_ex_2_arm_1 <- as.numeric(raw_data$totale_mmse
 
 # rendere dicotomiche alcune variabili categoriche:
 
+# stroke type:
+raw_data$hemorragic_stroke <- ifelse(
+  is.na(raw_data$tipologia_ictus_t0_arm_1),
+  NA,
+  ifelse(raw_data$tipologia_ictus_t0_arm_1 == 2, 1, 0)
+)
 # ----
 # tipologia_ictus_ischemico_2_t0_arm_1
 # 1. sindromi lacunari 

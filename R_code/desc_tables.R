@@ -65,12 +65,21 @@ raw_data <- raw_data %>%
                 ~ suppressWarnings(as.numeric(gsub(",", ".", .)))))
 
 # ---------
-# table 1: raw vs clean dataset
+# Clean data descriptives
+bin_vars_clean <- get_bin_vars(clean_data)
 
-raw_clean_table <- make_tableone(raw_data, clean_data, "raw", "clean")
-View(raw_clean_table)
+clean_table <- CreateTableOne(
+  vars = names(clean_data),
+  data = clean_data,
+  factorVars = bin_vars_clean
+)
 
-View(raw_clean_table)
+print(clean_table, showAllLevels = TRUE)
+
+# per esportarla in un formato "guardabile" / esportabile
+clean_table_df <- print(clean_table, showAllLevels = TRUE, printToggle = FALSE)
+View(clean_table_df)
+
 
 # --------
 # table 2: dev vs test
