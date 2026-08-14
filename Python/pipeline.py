@@ -246,7 +246,7 @@ GS_MVRF = GridSearchCV(
     cv=custom_cv,
     scoring=custom_scorer,
     refit=True,
-    n_jobs=-1,
+    n_jobs= 4,
     verbose=1,
     return_train_score=True
 )
@@ -257,7 +257,7 @@ GS_MTEN = GridSearchCV(
     cv=custom_cv,
     scoring=custom_scorer,
     refit=True,
-    n_jobs=-1,
+    n_jobs= 4,
     verbose=1,
     return_train_score=True
 )
@@ -268,7 +268,7 @@ GS_MVCatBoost = GridSearchCV(
     cv=custom_cv,
     scoring=custom_scorer,
     refit=True,
-    n_jobs=-1,
+    n_jobs= 4,
     verbose=1,
     return_train_score=True
 )
@@ -279,7 +279,7 @@ GS_MVXGB = GridSearchCV(
     cv=custom_cv,
     scoring=custom_scorer,
     refit=True,
-    n_jobs=-1,
+    n_jobs= 4,
     verbose=1,
     return_train_score=True
 )
@@ -352,19 +352,19 @@ stl_grids = {}
 for outcome in outcomes:
     stl_grids[(outcome, 'RF')]  = GridSearchCV(estimator=clone(STL_RF_pipe),  param_grid=rf_stl_param_grid, 
                                                 cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, 
-                                                n_jobs=-1, verbose=1, return_train_score=True)
+                                                n_jobs= 4, verbose=1, return_train_score=True)
     
     stl_grids[(outcome, 'EN')]  = GridSearchCV(estimator=clone(STL_EN_pipe),  param_grid=en_stl_param_grid, 
                                                 cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, 
-                                                n_jobs=-1, verbose=1, return_train_score=True)
+                                                n_jobs= 4, verbose=1, return_train_score=True)
     
     stl_grids[(outcome, 'CB')]  = GridSearchCV(estimator=clone(STL_CB_pipe),  param_grid=cb_stl_param_grid,  
                                               cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, 
-                                              n_jobs=-1, verbose=1, return_train_score=True)
+                                              n_jobs= 4, verbose=1, return_train_score=True)
     
     stl_grids[(outcome, 'XGB')] = GridSearchCV(estimator=clone(STL_XGB_pipe), param_grid=xgb_stl_param_grid, 
                                               cv=custom_cv, scoring='neg_root_mean_squared_error', refit=True, 
-                                              n_jobs=-1, verbose=1, return_train_score=True)
+                                              n_jobs= 4, verbose=1, return_train_score=True)
 
 # ==================== #
 #       FITTING        #
