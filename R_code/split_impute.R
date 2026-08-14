@@ -25,7 +25,7 @@ original <- original[,-c(1,2)]
 # categorical vars as factors
 
 cat_vars <- c(
-  "sesso", "caregiver_presenza", "living_arrangements",
+  "sesso", "caregiver_presenza", "living_arrangements", "centro",
   
   "hemorragic_stroke", "recurrent_stroke",
   "ictus_ischemico_circ_post_t0", "ictus_ischemico_compl_circ_ant_t0", "ictus_ischemico_parz_circ_ant_t0",
