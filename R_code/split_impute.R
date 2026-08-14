@@ -21,6 +21,26 @@ original <- read_csv('clean_dataset.csv')
 head(original)
 original <- original[,-c(1,2)]
 
+# ----
+# categorical vars as factors
+
+cat_vars <- c(
+  "sesso", "caregiver_presenza", "living_arrangements",
+  
+  "hemorragic_stroke", "recurrent_stroke",
+  "ictus_ischemico_circ_post_t0", "ictus_ischemico_compl_circ_ant_t0", "ictus_ischemico_parz_circ_ant_t0",
+  "lato_lesione_destro_t0", "lato_lesione_sinistro_t0", "lato_lesione_bilaterale_t0",
+  "lesione_sopratentoriale", "lesione_sottotentoriale",
+  
+  "reduced_alertness_coma", "delirium", "clinical_instability", 
+  "acute_infection", "depression", "severe_pain", "dysphagia", 
+  "malnutrition", "nasogastric_peg", "pressure_ulcer", 
+  "urinary_catheter", "cvc", "tracheostomy", "dialysis", "anemia"
+)
+
+original <- original %>%
+  mutate(across(any_of(cat_vars), as.factor))
+
                                     # ------------------ #
                                     # HOLD-OUT SPLITTING #
                                     # ------------------ #
