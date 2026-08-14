@@ -90,5 +90,13 @@ View(dev_test_table)
 # --------
 # table 3: imp vs syn trains
 
+bin_vars_official <- get_bin_vars(clean_data)
+
+train_imp <- train_imp %>%
+  mutate(across(all_of(bin_vars_official), ~ factor(round(as.numeric(.)))))
+
+syn_train <- syn_train %>%
+  mutate(across(all_of(bin_vars_official), ~ factor(round(as.numeric(.)))))
+
 train_compare_table <- make_tableone(train_imp, syn_train, "imputed", "synthetic")
 View(train_compare_table)
