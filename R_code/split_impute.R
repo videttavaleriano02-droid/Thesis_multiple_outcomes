@@ -25,17 +25,22 @@ original <- original[,-c(1,2)]
 # categorical vars as factors
 
 cat_vars <- c(
-  "sesso", "caregiver_presenza", "living_arrangements", "centro",
+  "sesso", "caregiver_t0_arm_1", "convivi___1_t0_arm_1", "convivi___2_t0_arm_1",
+  "convivi___3_t0_arm_1", "convivi___4_t0_arm_1", "centro",
   
-  "hemorragic_stroke", "recurrent_stroke",
-  "ictus_ischemico_circ_post_t0", "ictus_ischemico_compl_circ_ant_t0", "ictus_ischemico_parz_circ_ant_t0",
+  "hemorragic_stroke", "recidiva_t0_arm_1", "sede_lesione___0_t0_arm_1 = 1",
   "lato_lesione_destro_t0", "lato_lesione_sinistro_t0", "lato_lesione_bilaterale_t0",
   "lesione_sopratentoriale", "lesione_sottotentoriale",
   
-  "reduced_alertness_coma", "delirium", "clinical_instability", 
-  "acute_infection", "depression", "severe_pain", "dysphagia", 
-  "malnutrition", "nasogastric_peg", "pressure_ulcer", 
-  "urinary_catheter", "cvc", "tracheostomy", "dialysis", "anemia"
+  "scala_instabilit_clinica___1_t0_arm_1", "scala_instabilit_clinica___2_t0_arm_1",
+  "scala_instabilit_clinica___3_t0_arm_1", "scala_instabilit_clinica___4_t0_arm_1",
+  "scala_instabilit_clinica___5_t0_arm_1", "scala_instabilit_clinica___0_t0_arm_1",
+  
+  "ridotta_vigilanza_o_coma_t0_arm_1", "delirium_t0_arm_1", "instabilita_clinica_t0_arm_1",
+  "infezione_acuta_t0_arm_1", "depresisone_t0_arm_1", "dolore_marc_t0_arm_1", "disfagia_t0_arm_1",
+  "malnutrizione_t0_arm_1", "sng_peg_t0_arm_1", "ulcera_da_pressione_t0_arm_1",
+  "catetere_vescicale_t0_arm_1", "catetere_venoso_centrale_t0_arm_1",
+  "tracheostomia_t0_arm_1", "dialisi_t0_arm_1", "anemia_t0_arm_1"
 )
 
 original <- original %>%
