@@ -28,7 +28,7 @@ cat_vars <- c(
   "sesso", "caregiver_t0_arm_1", "convivi___1_t0_arm_1", "convivi___2_t0_arm_1",
   "convivi___3_t0_arm_1", "convivi___4_t0_arm_1", "centro",
   
-  "hemorragic_stroke", "recidiva_t0_arm_1", "sede_lesione___0_t0_arm_1 = 1",
+  "hemorragic_stroke", "recidiva_t0_arm_1", "sede_lesione___0_t0_arm_1",
   "lato_lesione_destro_t0", "lato_lesione_sinistro_t0", "lato_lesione_bilaterale_t0",
   "lesione_sopratentoriale", "lesione_sottotentoriale",
   
