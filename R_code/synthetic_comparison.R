@@ -6,7 +6,8 @@ library(synthpop)
 
 dir.create("synthetic_comparison", showWarnings = FALSE)
 
-# Variabili categoriche
+# Categorical vars
+
 cat_vars <- c(
   "sesso", "caregiver_t0_arm_1", "convivi___1_t0_arm_1", "convivi___2_t0_arm_1",
   "convivi___3_t0_arm_1", "convivi___4_t0_arm_1", "centro",
