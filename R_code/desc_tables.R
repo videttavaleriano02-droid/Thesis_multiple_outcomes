@@ -54,10 +54,12 @@ make_tableone <- function(df1, df2, label1, label2) {
     strata = "group",
     data = combined,
     factorVars = bin_vars,
-    test = TRUE
+    test = TRUE,
+    smd= T,
+    includeNA = T
   )
   
-  print(tab, test = TRUE)
+  print(tab, test = TRUE, smd=T)
 }
 
 raw_data <- raw_data %>%
@@ -71,10 +73,12 @@ bin_vars_clean <- get_bin_vars(clean_data)
 clean_table <- CreateTableOne(
   vars = names(clean_data),
   data = clean_data,
-  factorVars = bin_vars_clean
-)
+  factorVars = bin_vars_clean,
+  test=T,
+  smd=T,
+  includeNA = T)
 
-print(clean_table, showAllLevels = TRUE)
+print(clean_table, showAllLevels = TRUE, test=T, smd=T)
 
 # per esportarla in un formato "guardabile" / esportabile
 clean_table_df <- print(clean_table, showAllLevels = TRUE, printToggle = FALSE)
