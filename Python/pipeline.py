@@ -202,6 +202,7 @@ MVCatBoost_pipe = Pipeline( [
     regressor=CatBoostRegressor(
         loss_function='MultiRMSE',
         random_seed=seed,
+        thread_count=2,
         verbose=0  
     ),
     transformer=StandardScaler()
@@ -219,6 +220,7 @@ MVXGB_pipe = Pipeline( [
         tree_method='hist',           
         multi_strategy='multi_output_tree',
         random_state=seed,
+        n_jobs= 2,
         verbosity=0
     ),
     transformer=StandardScaler()
@@ -322,7 +324,7 @@ STL_EN_pipe = Pipeline([
 STL_CB_pipe = Pipeline([
     ('scaler_x', StandardScaler()),
     ('STL_CB', TransformedTargetRegressor(
-        regressor=CatBoostRegressor(loss_function='RMSE', random_seed=seed, verbose=0),
+        regressor=CatBoostRegressor(loss_function='RMSE', random_seed=seed, thread_count=2, verbose=0),
         transformer=StandardScaler()
     )
     )
@@ -332,7 +334,7 @@ STL_CB_pipe = Pipeline([
 STL_XGB_pipe = Pipeline([
     ('scaler_x', StandardScaler()),
     ('STL_XGB', TransformedTargetRegressor(
-        regressor=XGBRegressor(tree_method='hist', random_state=seed, verbosity=0),
+        regressor=XGBRegressor(tree_method='hist', random_state=seed, n_jobs= 2, verbosity=0),
         transformer=StandardScaler()
     )
     )
@@ -371,7 +373,7 @@ for outcome in outcomes:
 # ==================== #
 
 # ========== #
-#    MTL      #
+#    MTL     #
 # ========== #
 
 mtl_models = {
@@ -399,7 +401,7 @@ for model_name, gs in mtl_models.items():
     print(f'Done in {elapsed/60:.3f} mins | NRMSE: {nrmse:.4f}')
 
 # ========== #
-#    STL      #
+#    STL     #
 # ========== #
 
 stl_results = {}
