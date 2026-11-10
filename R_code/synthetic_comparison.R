@@ -3,6 +3,7 @@ setwd("/Users/valerianovidetta/Desktop/Tesi/Dataset/")
 
 library(tidyverse)
 library(synthpop)
+set.seed(2026)
 
 dir.create("synthetic_comparison", showWarnings = FALSE)
 
@@ -42,12 +43,6 @@ run_comparison <- function(real, synthetic, label) {
       "| Real:", nrow(real),
       "| Synthetic:", nrow(synthetic), "\n")
   
-  pdf(
-    paste0("synthetic_comparison/compare_", label, ".pdf"),
-    width = 12,
-    height = 9
-  )
-  
   cmp <- compare(
     object = synthetic,
     data = real,
@@ -56,24 +51,29 @@ run_comparison <- function(real, synthetic, label) {
     ncol = 3,
     utility.stats = c("pMSE", "S_pMSE", "df"),
     table = TRUE,
-    plot = TRUE,
+    plot = FALSE,
     print.flag = TRUE
   )
-  
-  dev.off()
-  
-  if (!is.null(cmp$tables)) {
-    saveRDS(
-      cmp$tables,
-      paste0("synthetic_comparison/compare_tables_", label, ".rds")
-    )
-  }
   
   util <- utility.gen(
     object = synthetic,
     data = real,
     method = "cart",
     print.flag = FALSE
+  )
+  
+  # S_pMSE
+  tu <- cmp$tab.utility
+  by_var <- as.data.frame(tu)
+  by_var$variable <- rownames(by_var)
+  by_var$dataset  <- label
+  rownames(by_var) <- NULL
+  
+  
+  write.csv(
+    by_var,
+    paste0("synthetic_comparison/utility_byvar_", label, ".csv"),
+    row.names = FALSE
   )
   
   result <- data.frame(
@@ -92,12 +92,13 @@ run_comparison <- function(real, synthetic, label) {
   
   cat("S_pMSE:", round(util$S_pMSE, 3), "\n")
   
-  result
+  list(overall = result, by_var = by_var)
 }
 
 
 # Cross-validation
 results_folds <- list()
+byvar_folds   <- list()
 
 for (i in 1:5) {
   
@@ -114,11 +115,10 @@ for (i in 1:5) {
   # augmented = file with real data -> then synths
   synthetic <- augmented[(nrow(real) + 1):nrow(augmented), ]
   
-  results_folds[[i]] <- run_comparison(
-    real,
-    synthetic,
-    paste0("fold", i)
-  )
+  # folds
+  res_i <- run_comparison(real, synthetic, paste0("fold", i))
+  results_folds[[i]] <- res_i$overall
+  byvar_folds[[i]]   <- res_i$by_var
 }
 
 results_folds <- bind_rows(results_folds)
@@ -128,7 +128,6 @@ write.csv(
   "synthetic_comparison/utility_summary_folds.csv",
   row.names = FALSE
 )
-
 
 # Development set
 real_dev <- read_csv(
@@ -145,18 +144,76 @@ synthetic_dev <- augmented_dev[
   (nrow(real_dev) + 1):nrow(augmented_dev),
 ]
 
-result_dev <- run_comparison(
-  real_dev,
-  synthetic_dev,
-  "development"
-)
+res_dev    <- run_comparison(real_dev, synthetic_dev, "development")
+result_dev <- res_dev$overall
+byvar_all  <- bind_rows(bind_rows(byvar_folds), res_dev$by_var)
+
+write.csv(byvar_all, "synthetic_comparison/utility_byvar_all.csv", row.names = FALSE)
 
 
-# Risultati complessivi
+# Overall results
 overall_summary <- bind_rows(
   results_folds,
   result_dev
 )
+
+byvar_ok <- byvar_all %>% filter(is.finite(S_pMSE), df > 0)
+
+# median and maxima
+byvar_ok %>%
+  group_by(dataset) %>%
+  summarise(median = median(S_pMSE), max = max(S_pMSE))
+
+# 10 worst variables
+byvar_ok %>%
+  filter(dataset != "development") %>%
+  group_by(variable) %>%
+  summarise(mean_S_pMSE = mean(S_pMSE)) %>%
+  arrange(desc(mean_S_pMSE)) %>%
+  head(10)
+
+# the three outcomes
+byvar_ok %>%
+  filter(variable %in% c("mbi_t1", "tct_t1", "mrs_t1")) %>%
+  arrange(variable, dataset)
+
+
+# mean across the 5 folds
+global_folds <- results_folds %>%
+  summarise(
+    n_real_mean  = mean(n_real),
+    n_synth_mean = mean(n_synth),
+    pMSE_mean    = mean(pMSE),
+    pMSE_sd      = sd(pMSE),
+    S_pMSE_mean  = mean(S_pMSE),
+    S_pMSE_sd    = sd(S_pMSE),
+    S_pMSE_min   = min(S_pMSE),
+    S_pMSE_max   = max(S_pMSE)
+  )
+
+
+byvar_folds_mean <- byvar_ok %>%
+  filter(dataset != "development") %>%
+  group_by(variable) %>%
+  summarise(
+    S_pMSE_mean = mean(S_pMSE),
+    S_pMSE_sd   = sd(S_pMSE),
+    n_folds     = n(),
+    .groups = "drop"
+  )
+
+dev_vals <- byvar_ok %>%
+  filter(dataset == "development") %>%
+  select(variable, S_pMSE_dev = S_pMSE)
+
+byvar_summary <- byvar_folds_mean %>%
+  left_join(dev_vals, by = "variable") %>%
+  arrange(desc(S_pMSE_mean))
+
+write.csv(byvar_summary, "synthetic_comparison/utility_byvar_mean_folds.csv", 
+          row.names = FALSE)
+write.csv(global_folds,  "synthetic_comparison/utility_global_mean_folds.csv", 
+          row.names = FALSE)
 
 write.csv(
   overall_summary,
