@@ -8,7 +8,6 @@ import numpy as np
 import os
 import joblib
 
-
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import make_scorer
@@ -25,7 +24,6 @@ from xgboost import XGBRegressor
 from sklearn.base import clone
 
 import time
-
 
 # ============================== #
 #           Functions            #
@@ -73,7 +71,6 @@ np.random.seed(seed)
 os.chdir("/Users/valerianovidetta/Desktop/Tesi/Dataset")
 
 outcomes = ["mbi_t1", "mrs_t1", "tct_t1"]
-
 
 train_files = ['folds_synthetic/train_syn_fold1.csv','folds_synthetic/train_syn_fold2.csv',
               'folds_synthetic/train_syn_fold3.csv','folds_synthetic/train_syn_fold4.csv',
@@ -235,7 +232,7 @@ MVXGB_pipe = Pipeline( [
 
 # Prefix: models are wrapped in TransformedTargetRegressor.
 # GridSearchCV sees the params as: regressor__<param>
-# Example: RandomForestRegressor(n_estimators=...) → 'regressor__n_estimators'
+# Example: RandomForestRegressor(n_estimators=...) -> 'regressor__n_estimators'
 
 rf_mtl_param_grid  = {f'MVRF__regressor__{k}': v for k, v in rf_grid.items()}
 en_mtl_param_grid  = {f'MTEN__regressor__{k}': v for k, v in elasticnet_grid.items()}
@@ -434,11 +431,10 @@ for name, res in mtl_results.items():
     print(f"{name:<15} {res['nrmse']:<15.4f} {res['time_min']:<12.3f}")
 
 best_mtl = min(mtl_results, key=lambda x: mtl_results[x]['nrmse'])
-print(f"\n→ Best MTL: {best_mtl} (NRMSE={mtl_results[best_mtl]['nrmse']:.5f})")
+print(f"\n Best MTL: {best_mtl} (NRMSE={mtl_results[best_mtl]['nrmse']:.5f})")
 best_mtl_gs = mtl_models[best_mtl]
 
 print_fold_errors(best_mtl_gs, model_label=best_mtl, mtl=True)
-
 
 # --- STL ---
 print(f"\n{'-'*50}")
@@ -454,7 +450,7 @@ for outcome in outcomes:
     best_model = min(['RF', 'EN', 'CB', 'XGB'],
                     key=lambda m: stl_results[(outcome, m)]['rmse'])
     best_stl_per_outcome[outcome] = (best_model, stl_grids[(outcome, best_model)])
-    print(f"\n→ Best STL for {outcome}: {best_model} (RMSE={stl_results[(outcome, best_model)]['rmse']:.5f})")
+    print(f"\n Best STL for {outcome}: {best_model} (RMSE={stl_results[(outcome, best_model)]['rmse']:.5f})")
 
     print_fold_errors(stl_grids[(outcome, best_model)], 
                     model_label=f"{outcome} - {best_model}", mtl=False)
