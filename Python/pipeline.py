@@ -485,6 +485,7 @@ stl_pipe_map = {
     'RF': STL_RF_pipe, 'EN': STL_EN_pipe,
     'CB': STL_CB_pipe, 'XGB': STL_XGB_pipe
 }
+final_stl_models = {}
 y_pred_stl = np.zeros((len(X_test), len(outcomes)))
 for i, outcome in enumerate(outcomes):
     best_model_name, best_gs = best_stl_per_outcome[outcome]
@@ -492,6 +493,7 @@ for i, outcome in enumerate(outcomes):
     best_stl_model.set_params(**best_gs.best_params_)
     best_stl_model.fit(X_dev, y_dev[outcome])
     y_pred_stl[:, i] = best_stl_model.predict(X_test)
+    final_stl_models[outcome] = best_stl_model  # save the trained model for each outcome
 
 # RMSE by outcome
 rmse_results = {}
@@ -601,9 +603,4 @@ resid_df.to_csv("results/residuals_test.csv", index=False)
 
 # ------ Saving models ------ #
 joblib.dump(best_mtl_model, "results/best_mtl_model.pkl")
-
-stl_models_to_save = {
-    outcome: best_stl_per_outcome[outcome][1].best_estimator_
-    for outcome in outcomes
-}
-joblib.dump(stl_models_to_save, "results/best_stl_models.pkl")
+joblib.dump(final_stl_models, "results/best_stl_models.pkl")
