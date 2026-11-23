@@ -221,3 +221,49 @@ write.csv(
   row.names = FALSE
 )
 
+
+
+## Make plots
+
+dir.create("synthetic_comparison/plots", showWarnings = FALSE)
+
+vars_plot <- c(
+  # Esiti (t1)
+  "mbi_t1", "tct_t1", "mrs_t1",
+  # Baseline degli stessi esiti
+  "totale_mbi_t0_arm_1", "totale_tct_t0_arm_1", "mrs_t0_arm_1",
+  # Gravità clinica
+  "totale_nihss_t0_arm_1",
+  # Demografiche
+  "eta_ammissione_t0_arm_1", "sesso",
+  # Lesione
+  "hemorragic_stroke", "lesione_sopratentoriale", "lato_lesione_destro_t0"
+)
+
+make_plots <- function(real, synthetic) {
+  
+  real      <- prepare_data(real)      
+  synthetic <- prepare_data(synthetic)
+
+  cmp_p <- compare(
+    object = synthetic,
+    data   = real,
+    vars   = vars_plot,
+    stat   = "percents",
+    nrow   = 5,
+    ncol   = 3,
+    table  = FALSE,
+    plot   = TRUE,
+    print.flag = FALSE
+  )
+  
+  ggsave(
+    filename = paste0("synthetic_comparison/plots/plot_development.png"),
+    plot   = cmp_p$plots,
+    width  = 12,
+    height = 8,
+    dpi    = 300
+  )
+}
+
+make_plots(real_dev, synthetic_dev)
