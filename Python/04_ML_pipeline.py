@@ -522,8 +522,8 @@ print(f"{'Mean':<12} {mean_rmse_mtl:<15.4f} {mean_rmse_stl:<20.4f}")
 #       SAVING CV RESULTS    #
 # ========================== # 
 
-diroutput = "/Users/valerianovidetta/Desktop/Tesi/Code/Output"
-os.makedirs(diroutput + "/results", exist_ok=True)
+maindir = "/Users/valerianovidetta/Desktop/Tesi"
+os.makedirs(maindir + "/results", exist_ok=True)
 
 # --- MTL: cv_results_ for each model ---
 
@@ -533,7 +533,7 @@ for name, gs in mtl_models.items():
     df.insert(0, 'model', name) 
     mtl_cv_dfs.append(df)
 
-pd.concat(mtl_cv_dfs, axis=0).to_csv(diroutput + "/results/cv_results_mtl.csv", index=False)
+pd.concat(mtl_cv_dfs, axis=0).to_csv(maindir + "/results/cv_results_mtl.csv", index=False)
 
 # --- MTL: best params + score by model
 best_params_rows = []
@@ -542,7 +542,7 @@ for name, res in mtl_results.items():
     row.update(res['best_params'])  # hyperparameters are columns
     best_params_rows.append(row)
 
-pd.DataFrame(best_params_rows).to_csv(diroutput + "/results/best_params_mtl.csv", index=False)
+pd.DataFrame(best_params_rows).to_csv(maindir + "/results/best_params_mtl.csv", index=False)
 
 # --- STL: cv_results_ for each (outcome, model) ---
 stl_cv_dfs = []
@@ -552,7 +552,7 @@ for (outcome, model_name), gs in stl_grids.items():
     df.insert(1, 'model', model_name)
     stl_cv_dfs.append(df)
 
-pd.concat(stl_cv_dfs, axis=0).to_csv(diroutput + "/results/cv_results_stl.csv", index=False)
+pd.concat(stl_cv_dfs, axis=0).to_csv(maindir + "/results/cv_results_stl.csv", index=False)
 
 # --- STL: best params + score by (outcome, model) ---
 stl_best_rows = []
@@ -562,7 +562,7 @@ for (outcome, model_name), res in stl_results.items():
     row.update(res['best_params'])
     stl_best_rows.append(row)
 
-pd.DataFrame(stl_best_rows).to_csv(diroutput + "/results/best_params_stl.csv", index=False)
+pd.DataFrame(stl_best_rows).to_csv(maindir + "/results/best_params_stl.csv", index=False)
 
 # ================================ #
 #      SAVING FINAL RESULTS        #
@@ -577,7 +577,7 @@ for i, outcome in enumerate(outcomes):
     pred_df[f"{outcome}_pred_mtl"] = y_pred_mtl[:, i]
     pred_df[f"{outcome}_pred_stl"] = y_pred_stl[:, i]
 
-pred_df.to_csv(diroutput + "/results/predictions_test.csv", index=False)
+pred_df.to_csv(maindir + "/results/predictions_test.csv", index=False)
 
 # --- RMSE by outcome (MTL vs STL) ---
 rmse_rows = []
@@ -590,7 +590,7 @@ for outcome, res in rmse_results.items():
         'winner':        best_mtl if res['MTL'] < res['STL'] else best_stl_name
     })
 
-pd.DataFrame(rmse_rows).to_csv(diroutput + "/results/rmse_comparison.csv", index=False)
+pd.DataFrame(rmse_rows).to_csv(maindir + "/results/rmse_comparison.csv", index=False)
 
 # residuals --
 resid_df = y_test.copy().reset_index(drop=True)
@@ -600,8 +600,8 @@ for i, outcome in enumerate(outcomes):
     resid_df[f"{outcome}_resid_mtl"] = y_test[outcome].values - y_pred_mtl[:, i]
     resid_df[f"{outcome}_resid_stl"] = y_test[outcome].values - y_pred_stl[:, i]
 
-resid_df.to_csv(diroutput + "/results/residuals_test.csv", index=False)
+resid_df.to_csv(maindir + "/results/residuals_test.csv", index=False)
 
 # ------ Saving models ------ #
-joblib.dump(best_mtl_model, diroutput + "/results/best_mtl_model.pkl")
-joblib.dump(final_stl_models, diroutput + "/results/best_stl_models.pkl")
+joblib.dump(best_mtl_model, maindir + "/results/best_mtl_model.pkl")
+joblib.dump(final_stl_models, maindir + "/results/best_stl_models.pkl")
