@@ -523,6 +523,7 @@ print(f"{'Mean':<12} {mean_rmse_mtl:<15.4f} {mean_rmse_stl:<20.4f}")
 # ========================== # 
 
 maindir = "/Users/valerianovidetta/Desktop/Tesi"
+diroutput = maindir + "/Code/Output"
 os.makedirs(maindir + "/results", exist_ok=True)
 
 # --- MTL: cv_results_ for each model ---
@@ -590,7 +591,7 @@ for outcome, res in rmse_results.items():
         'winner':        best_mtl if res['MTL'] < res['STL'] else best_stl_name
     })
 
-pd.DataFrame(rmse_rows).to_csv(maindir + "/results/rmse_comparison.csv", index=False)
+pd.DataFrame(rmse_rows).to_csv(diroutput + "/rmse_comparison.csv", index=False)
 
 # residuals --
 resid_df = y_test.copy().reset_index(drop=True)
