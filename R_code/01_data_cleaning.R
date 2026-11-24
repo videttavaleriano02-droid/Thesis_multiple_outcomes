@@ -1,14 +1,11 @@
                                       # ------------------ #
                                       #   Adjusting Data   #
                                       # ------------------ #
-setwd('/Users/valerianovidetta/Desktop/Tesi/Dataset/') 
-
-library(dplyr)
-library(synthpop)
+ 
 
 # ----------------
 
-raw_data <- readxl::read_xlsx('strategy_valeriano_wide_solo_event.xlsx')
+raw_data <- readxl::read_xlsx(paste0(dirinput,"/strategy_valeriano_wide_solo_event.xlsx"))
 
 raw_data <- raw_data[raw_data$record_id >= 68, ] # per ora rimaniamo fino al 68
 
@@ -157,8 +154,29 @@ clean_data <- clean_data[, !(names(clean_data) %in% vars_da_rimuovere)]
 ncol(raw_data)
 ncol(clean_data)
 
+cat_vars <- c(
+  "sesso", "caregiver_t0_arm_1", "convivi___1_t0_arm_1", "convivi___2_t0_arm_1",
+  "convivi___3_t0_arm_1", "convivi___4_t0_arm_1", "centro",
+  
+  "hemorragic_stroke", "recidiva_t0_arm_1", "sede_lesione___0_t0_arm_1",
+  "lato_lesione_destro_t0", "lato_lesione_sinistro_t0", "lato_lesione_bilaterale_t0",
+  "lesione_sopratentoriale", "lesione_sottotentoriale",
+  
+  "scala_instabilit_clinica___1_t0_arm_1", "scala_instabilit_clinica___2_t0_arm_1",
+  "scala_instabilit_clinica___3_t0_arm_1", "scala_instabilit_clinica___4_t0_arm_1",
+  "scala_instabilit_clinica___5_t0_arm_1", "scala_instabilit_clinica___0_t0_arm_1",
+  
+  "ridotta_vigilanza_o_coma_t0_arm_1", "delirium_t0_arm_1", "instabilita_clinica_t0_arm_1",
+  "infezione_acuta_t0_arm_1", "depresisone_t0_arm_1", "dolore_marc_t0_arm_1", "disfagia_t0_arm_1",
+  "malnutrizione_t0_arm_1", "sng_peg_t0_arm_1", "ulcera_da_pressione_t0_arm_1",
+  "catetere_vescicale_t0_arm_1", "catetere_venoso_centrale_t0_arm_1",
+  "tracheostomia_t0_arm_1", "dialisi_t0_arm_1", "anemia_t0_arm_1"
+)
+
+clean_data <- clean_data %>%
+  mutate(across(any_of(cat_vars), as.factor))
 
 # clean dataset
-write.csv(clean_data, "clean_dataset.csv")
+write.csv(clean_data, paste0(dirintermediate,"/clean_dataset.csv"), row.names = FALSE)
 
 
