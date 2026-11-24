@@ -99,30 +99,38 @@ print(overall_summary)
 
 ## Make plots
 
-dir.create(paste0(diroutput, "/synthetic_comparison/plots"), showWarnings = FALSE)
-
-vars_plot <- c(
-  # outcomes (t1)
-  "mbi_t1", "tct_t1", "mrs_t1",
-  # outcomes at baseline (t0)
-  "totale_mbi_t0_arm_1", "totale_tct_t0_arm_1", "mrs_t0_arm_1",
-  # Clinical gravity
-  "totale_nihss_t0_arm_1",
-  # Demographic
-  "eta_ammissione_t0_arm_1", "sesso",
-  # Lesion
-  "hemorragic_stroke", "lesione_sopratentoriale", "lato_lesione_destro_t0"
+var_labels <- c(
+  "mbi_t1" = "MBI at follow-up",
+  "tct_t1" = "TCT at follow-up",
+  "mrs_t1" = "mRS at follow-up",
+  "totale_mbi_t0_arm_1" = "MBI at baseline",
+  "totale_tct_t0_arm_1" = "TCT at baseline",
+  "mrs_t0_arm_1" = "mRS at baseline",
+  "totale_nihss_t0_arm_1" = "NIHSS at baseline",
+  "eta_ammissione_t0_arm_1" = "Age at admission",
+  "sesso" = "Sex",
+  "hemorragic_stroke" = "Hemorrhagic stroke",
+  "lesione_sopratentoriale" = "Supratentorial lesion",
+  "lato_lesione_destro_t0" = "Right-sided lesion"
 )
+
 
 make_plots <- function(real, synthetic) {
   
   real      <- prepare_data(real)      
   synthetic <- prepare_data(synthetic)
 
+  # Rename variables for plotting only
+  names(real)[match(names(var_labels), names(real))] <-
+    var_labels
+
+  names(synthetic)[match(names(var_labels), names(synthetic))] <-
+    var_labels
+
   cmp_p <- compare(
     object = synthetic,
     data   = real,
-    vars   = vars_plot,
+    vars   = unname(var_labels),
     stat   = "percents",
     nrow   = 5,
     ncol   = 3,
