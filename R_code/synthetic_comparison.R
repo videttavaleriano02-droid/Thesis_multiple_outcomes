@@ -254,7 +254,8 @@ make_plots <- function(real, synthetic) {
     ncol   = 3,
     table  = FALSE,
     plot   = TRUE,
-    print.flag = FALSE
+    print.flag = FALSE,
+    utility.for.plot = NULL
   )
   
   ggsave(
