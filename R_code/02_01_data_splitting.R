@@ -4,16 +4,6 @@
 
 dir.create(paste0(dirintermediate, "/hold_out"), showWarnings = F)
 
-split_random <- function(df, p = 0.80, seed = 1) {
-  set.seed(seed)
-  n <- nrow(df)
-  idx <- sample(seq_len(n), size = floor(p * n))
-  list(
-    train = df[idx, ],
-    test  = df[-idx, ]
-  )
-}
-
 split <- split_random(clean_data, p = .8, seed = 2026)
 
 develop <- split$train

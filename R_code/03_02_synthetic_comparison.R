@@ -1,43 +1,6 @@
 
 dir.create(paste0(diroutput, "/synthetic_comparison"), showWarnings = FALSE)
 
-# cat vars as factors
-prepare_data <- function(df) {
-  as.data.frame(
-    df %>% mutate(across(any_of(cat_vars), as.factor))
-  )
-}
-
-# comparison synthtic vs real data
-run_comparison <- function(real, synthetic, label) {
-  
-  real <- prepare_data(real)
-  synthetic <- prepare_data(synthetic)
-  
-  cat("\nComparing:", label,
-      "| Real:", nrow(real),
-      "| Synthetic:", nrow(synthetic), "\n")
-  
-  util <- utility.gen(
-    object = synthetic,
-    data = real,
-    method = "cart",
-    print.flag = FALSE
-  )
-  
-   result <- data.frame(
-    dataset = label,
-    n_real = nrow(real),
-    n_synth = nrow(synthetic),
-    pMSE = util$pMSE,
-    S_pMSE = util$S_pMSE
-  )
- 
-  cat("S_pMSE:", round(util$S_pMSE, 3), "\n")
-  result
-}
-
-
 # Cross-validation
 results_folds <- list()
 
@@ -113,40 +76,5 @@ var_labels <- c(
   "lesione_sopratentoriale" = "Supratentorial lesion",
   "lato_lesione_destro_t0" = "Right-sided lesion"
 )
-
-
-make_plots <- function(real, synthetic) {
-  
-  real      <- prepare_data(real)      
-  synthetic <- prepare_data(synthetic)
-
-  # Rename variables for plotting only
-  names(real)[match(names(var_labels), names(real))] <-
-    var_labels
-
-  names(synthetic)[match(names(var_labels), names(synthetic))] <-
-    var_labels
-
-  cmp_p <- compare(
-    object = synthetic,
-    data   = real,
-    vars   = unname(var_labels),
-    stat   = "percents",
-    nrow   = 5,
-    ncol   = 3,
-    table  = FALSE,
-    plot   = TRUE,
-    print.flag = FALSE,
-    utility.for.plot = NULL
-  )
-  
-  ggsave(
-    filename = paste0(diroutput, "/synthetic_comparison/plot_development.png"),
-    plot   = cmp_p$plots,
-    width  = 12,
-    height = 8,
-    dpi    = 300
-  )
-}
 
 make_plots(real_dev, synthetic_dev)

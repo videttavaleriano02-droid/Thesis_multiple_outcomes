@@ -30,38 +30,6 @@ syn_train <- rbind(syn_train1, syn_train2, syn_train3, syn_train4, syn_train5)
 
 dir.create(paste0(diroutput, "/tables"), showWarnings = FALSE)
 
-# --------
-
-get_bin_vars <- function(df) {
-  names(df)[sapply(df, function(x) {
-    ux <- unique(na.omit(x))
-    all(ux %in% c(0,1))
-  })]
-}
-
-make_tableone <- function(df1, df2, label1, label2) {
-  
-  df1 <- df1 %>% mutate(group = label1)
-  df2 <- df2 %>% mutate(group = label2)
-  
-  combined <- bind_rows(df1, df2)
-  
-  bin_vars <- get_bin_vars(combined)
-  
-  tab <- CreateTableOne(
-    vars = setdiff(names(combined), "group"),
-    strata = "group",
-    data = combined,
-    factorVars = bin_vars,
-    test = TRUE,
-    smd= T,
-    includeNA = T
-  )
-  
-  out <- print(tab, test = TRUE, smd = TRUE, showAllLevels = TRUE, printToggle = FALSE)
-  out
-}
-
 raw_data <- raw_data %>%
   mutate(across(where(is.character),
                 ~ suppressWarnings(as.numeric(gsub(",", ".", .)))))
