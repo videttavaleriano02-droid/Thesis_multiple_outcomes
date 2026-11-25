@@ -588,8 +588,7 @@ for name, gs in mtl_models.items():
         'grid_time_min': mtl_results[name]['time_min'],
     })
 
-pd.DataFrame(mtl_rows).sort_values('val_nrmse') \
-    .to_csv(diroutput + "/ML/cv_mtl_table.csv", index=False)
+pd.DataFrame(mtl_rows).sort_values('val_nrmse').to_csv(diroutput + "/ML/cv_mtl_table.csv", index=False)
 
 # --- STL ---
 stl_rows = []
@@ -607,8 +606,7 @@ for outcome in outcomes:
 
 stl_table = pd.DataFrame(stl_rows)
 stl_table['outcome'] = pd.Categorical(stl_table['outcome'], categories=outcomes, ordered=True)
-stl_table.sort_values(['outcome', 'val_rmse']) \
-    .to_csv(diroutput + "/ML/cv_stl_table.csv", index=False)
+stl_table.sort_values(['outcome', 'val_rmse']).to_csv(diroutput + "/ML/cv_stl_table.csv", index=False)
 
 # ================================ #
 #      SAVING FINAL RESULTS        #
