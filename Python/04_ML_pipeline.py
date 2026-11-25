@@ -524,6 +524,7 @@ print(f"{'Mean':<12} {mean_rmse_mtl:<15.4f} {mean_rmse_stl:<20.4f}")
 
 maindir = "/Users/valerianovidetta/Desktop/Tesi"
 diroutput = maindir + "/Code/Output"
+os.makedirs(diroutput + "/ML", exist_ok=True)
 os.makedirs(maindir + "/results", exist_ok=True)
 
 # --- MTL: cv_results_ for each model ---
@@ -565,6 +566,50 @@ for (outcome, model_name), res in stl_results.items():
 
 pd.DataFrame(stl_best_rows).to_csv(maindir + "/results/best_params_stl.csv", index=False)
 
+# CV TABLES
+
+def best_cv_summary(gs):
+    """Medie train/val della combinazione migliore."""
+    idx = gs.best_index_
+    res = gs.cv_results_
+    return {
+        'train': -res['mean_train_score'][idx],
+        'val':   -res['mean_test_score'][idx],
+    }
+
+# --- MTL ---
+mtl_rows = []
+for name, gs in mtl_models.items():
+    s = best_cv_summary(gs)
+    mtl_rows.append({
+        'model': name,
+        'train_nrmse': s['train'],
+        'val_nrmse': s['val'],
+        'grid_time_min': mtl_results[name]['time_min'],
+    })
+
+pd.DataFrame(mtl_rows).sort_values('val_nrmse') \
+    .to_csv(diroutput + "/ML/cv_mtl_table.csv", index=False)
+
+# --- STL ---
+stl_rows = []
+for outcome in outcomes:
+    for model_name in ['RF', 'EN', 'CB', 'XGB']:
+        gs = stl_grids[(outcome, model_name)]
+        s = best_cv_summary(gs)
+        stl_rows.append({
+            'outcome': outcome,
+            'model': model_name,
+            'train_rmse': s['train'],
+            'val_rmse': s['val'],
+            'grid_time_min': stl_results[(outcome, model_name)]['time_min'],
+        })
+
+stl_table = pd.DataFrame(stl_rows)
+stl_table['outcome'] = pd.Categorical(stl_table['outcome'], categories=outcomes, ordered=True)
+stl_table.sort_values(['outcome', 'val_rmse']) \
+    .to_csv(diroutput + "/ML/cv_stl_table.csv", index=False)
+
 # ================================ #
 #      SAVING FINAL RESULTS        #
 # ================================ #
@@ -591,7 +636,7 @@ for outcome, res in rmse_results.items():
         'winner':        best_mtl if res['MTL'] < res['STL'] else best_stl_name
     })
 
-pd.DataFrame(rmse_rows).to_csv(diroutput + "/rmse_comparison.csv", index=False)
+pd.DataFrame(rmse_rows).to_csv(diroutput + "/ML/rmse_comparison.csv", index=False)
 
 # residuals --
 resid_df = y_test.copy().reset_index(drop=True)
