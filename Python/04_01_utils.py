@@ -31,8 +31,6 @@ def normalized_rmse(y_true, y_pred):
     rmse_per_outcome = np.sqrt(np.mean((y_true - y_pred)**2, axis=0))
     return np.mean(rmse_per_outcome / stds)
 
-custom_scorer = make_scorer(normalized_rmse, greater_is_better=False)
-
 def print_fold_errors(gs, model_label, n_folds=5, mtl=True):
     """
     Print fold errors

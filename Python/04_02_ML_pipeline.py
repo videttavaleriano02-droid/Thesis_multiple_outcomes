@@ -176,6 +176,9 @@ MVXGB_pipe = Pipeline( [
 # GridSearchCV sees the params as: regressor__<param>
 # Example: RandomForestRegressor(n_estimators=...) -> 'regressor__n_estimators'
 
+custom_scorer = make_scorer(normalized_rmse, greater_is_better=False)
+
+
 rf_mtl_param_grid  = {f'MVRF__regressor__{k}': v for k, v in rf_grid.items()}
 en_mtl_param_grid  = {f'MTEN__regressor__{k}': v for k, v in elasticnet_grid.items()}
 cb_mtl_param_grid  = {f'MVCatBoost__regressor__{k}': v for k, v in catboost_grid.items()}
