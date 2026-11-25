@@ -1,5 +1,5 @@
 # CODE TO RUN ALL STEPS WITHIN R
-# THEN PASS TO "04_pipeline.py" TO RUN THE MACHINE LEARNING PIPELINE
+# THEN PASS TO "04_01_utils.py" and "04_02_ML_pipeline.py" TO RUN THE MACHINE LEARNING PIPELINE
 
 # clean env
 rm(list=ls())
