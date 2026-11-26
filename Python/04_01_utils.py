@@ -25,6 +25,19 @@ import time
 # ============================== #
 #           Functions            #
 # ============================== #
+def rmse(y_true, y_pred):
+    """
+    Compute Root Mean Squared Error (RMSE)
+    Parameters:
+    y_true : array-like of shape (n_samples,) or (n_samples, n_outputs)
+        True values of the target variable(s).
+    y_pred : array-like of shape (n_samples,) or (n_samples, n_outputs)
+        Predicted values of the target variable(s).
+    Returns:
+    float
+        The RMSE value, which is the square root of the mean squared error between the true and predicted values.
+    """
+    return np.sqrt(np.mean((y_true - y_pred) ** 2))
 
 def normalized_rmse(y_true, y_pred): 
     stds = np.std(y_true, axis=0)
@@ -63,4 +76,5 @@ def best_cv_summary(gs):
         'train': -res['mean_train_score'][idx],
         'val':   -res['mean_test_score'][idx],
     }
+
 

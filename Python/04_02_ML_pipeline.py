@@ -11,6 +11,11 @@ seed = 2727
 np.random.seed(seed)
 
 os.chdir("/Users/valerianovidetta/Desktop/Tesi/Intermediate/")  # Set working directory to the folder containing the folds
+maindir = "/Users/valerianovidetta/Desktop/Tesi"
+diroutput = maindir + "/Code/Output"
+os.makedirs(diroutput + "/ML", exist_ok=True)
+os.makedirs(maindir + "/results", exist_ok=True)
+
 
 outcomes = ["mbi_t1", "mrs_t1", "tct_t1"]
 
@@ -443,8 +448,8 @@ for i, outcome in enumerate(outcomes):
 # RMSE by outcome
 rmse_results = {}
 for i, outcome in enumerate(outcomes):
-    rmse_mtl = np.sqrt(np.mean((y_test[outcome].values - y_pred_mtl[:, i])**2))
-    rmse_stl = np.sqrt(np.mean((y_test[outcome].values - y_pred_stl[:, i])**2))
+    rmse_mtl = rmse(y_test[outcome].values, y_pred_mtl[:, i])
+    rmse_stl = rmse(y_test[outcome].values, y_pred_stl[:, i])
     rmse_results[outcome] = {'MTL': rmse_mtl, 'STL': rmse_stl}
 
 # ----- Printing -----
@@ -467,10 +472,6 @@ print(f"{'Mean':<12} {mean_rmse_mtl:<15.4f} {mean_rmse_stl:<20.4f}")
 #       SAVING CV RESULTS    #
 # ========================== # 
 
-maindir = "/Users/valerianovidetta/Desktop/Tesi"
-diroutput = maindir + "/Code/Output"
-os.makedirs(diroutput + "/ML", exist_ok=True)
-os.makedirs(maindir + "/results", exist_ok=True)
 
 # --- MTL: cv_results_ for each model ---
 
