@@ -63,13 +63,13 @@ print(overall_summary)
 ## Make plots
 
 var_labels <- c(
-  "mbi_t1" = "MBI at follow-up",
-  "tct_t1" = "TCT at follow-up",
-  "mrs_t1" = "mRS at follow-up",
-  "totale_mbi_t0_arm_1" = "MBI at baseline",
-  "totale_tct_t0_arm_1" = "TCT at baseline",
-  "mrs_t0_arm_1" = "mRS at baseline",
-  "totale_nihss_t0_arm_1" = "NIHSS at baseline",
+  "mbi_t1" = "MBI at discharge",
+  "tct_t1" = "TCT at discharge",
+  "mrs_t1" = "mRS at discharge",
+  "totale_mbi_t0_arm_1" = "MBI at admission",
+  "totale_tct_t0_arm_1" = "TCT at admission",
+  "mrs_t0_arm_1" = "mRS at admission",
+  "totale_nihss_t0_arm_1" = "NIHSS at admission",
   "eta_ammissione_t0_arm_1" = "Age at admission",
   "sesso" = "Sex",
   "hemorragic_stroke" = "Hemorrhagic stroke",
